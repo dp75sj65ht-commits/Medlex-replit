@@ -1976,3 +1976,17 @@ function renderTermRow(x = {}) {
   `;
 }
 
+await fetch('/api/specialties');             // GET -> {ok, specialties}
+await fetch('/api/terms', { method:'POST', body: JSON.stringify({specialty}) });
+await fetch('/api/translate-term', { method:'POST', body: JSON.stringify({text, source, target}) });
+
+const safe = (v) => (v ?? '').toString();
+const en = safe(item.term_en || item.term);
+const es = safe(item.term_es);
+
+document.addEventListener('click', (e)=>{
+  const btn=e.target.closest('.dropdown-toggle[data-target]');
+  if(!btn) return;
+  const panel=document.getElementById(btn.dataset.target);
+  if(panel){ panel.classList.toggle('open'); btn.classList.toggle('active'); }
+});

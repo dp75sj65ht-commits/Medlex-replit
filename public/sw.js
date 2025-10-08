@@ -12,3 +12,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // passthrough by default
 });
+
+self.addEventListener('install', e=>self.skipWaiting());
+self.addEventListener('activate', e=>e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', e=>{}); // no caching in dev

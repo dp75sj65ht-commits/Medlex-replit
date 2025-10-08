@@ -429,3 +429,10 @@ body.no-scroll { overflow: hidden; }
   padding:.4rem; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 50; }
 .menu-item { display:block; width:100%; text-align:left; padding:.55rem .6rem; border-radius:8px; border:none; background:transparent; cursor:pointer; }
 .menu-item:hover, .menu-item:focus { background: rgba(59,130,246,.15); outline:none; }
+
+.site-header .logo{width:56px;height:56px;object-fit:contain}
+.hero-logo{display:none}
+@media(max-width:480px){.site-header .logo{width:48px;height:48px}}
+
+.dropdown-panel{display:none;margin:8px 0}
+.dropdown-panel.open{display:block}
