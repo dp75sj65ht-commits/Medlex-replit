@@ -118,7 +118,7 @@ const DefCache = {
 async function refreshSpecialties() {
   try {
     // 🔧 Change this path if your JSON lives elsewhere
-    const url = "/data/specialties.json";
+    const url = "/api/specialties";
     console.log("🔎 Fetching specialties from", url);
 
     const res = await fetch(url, { cache: "no-store" });

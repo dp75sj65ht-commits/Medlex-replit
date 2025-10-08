@@ -147,3 +147,24 @@ app.get('*', (req, res) => {
 // -------------------- listen --------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`MedLex server running on port ${PORT}`));
+
+// Serve specialties.json that lives OUTSIDE public/
+// Adjust the path below to your actual on-disk location
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// Example: file at project root: ./data/specialties.json
+// If yours is elsewhere, update this join(..) accordingly:
+const SPECIALTIES_PATH = path.join(__dirname, "data", "specialties.json");
+
+// Strongly prefer res.sendFile to avoid MIME/type issues
+app.get("/api/specialties", (req, res) => {
+  res.sendFile(SPECIALTIES_PATH, (err) => {
+    if (err) {
+      console.error("Failed to send specialties.json:", err);
+      res.status(500).json({ error: "Failed to load specialties" });
+    }
+  });
+});
