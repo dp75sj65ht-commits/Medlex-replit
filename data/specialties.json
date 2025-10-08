@@ -1,0 +1,12 @@
+{
+  "specialties": [
+    { "id": "anatomy", "name": "Anatomy" },
+    { "id": "cardiology", "name": "Cardiology" },
+    { "id": "neurology", "name": "Neurology" },
+    { "id": "dermatology", "name": "Dermatology" },
+    { "id": "orthopedics", "name": "Orthopedics" },
+    { "id": "pediatrics", "name": "Pediatrics" },
+    { "id": "radiology", "name": "Radiology" },
+    { "id": "pharmacology", "name": "Pharmacology" }
+  ]
+}

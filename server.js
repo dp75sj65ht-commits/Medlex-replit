@@ -139,6 +139,41 @@ app.post('/api/enrich', async (req, res) => {
   }
 });
 
+// If your JSON is at: ./data/specialties.json (repo root)
+const SPECIALTIES_PATH = path.join(__dirname, "data", "specialties.json");
+
+app.get("/api/specialties", (req, res) => {
+  res.sendFile(SPECIALTIES_PATH, (err) => {
+    if (err) {
+      console.error("Failed to send specialties.json:", err);
+      res.status(500).json({ error: "Failed to load specialties" });
+    }
+  });
+});
+
+import fs from 'fs';
+
+// specialties.json (outside public)
+const SPECIALTIES_PATH = path.join(__dirname, 'data', 'specialties.json');
+app.get('/api/specialties', (req, res) => {
+  fs.access(SPECIALTIES_PATH, fs.constants.R_OK, (err) => {
+    if (err) return res.status(500).json({ error: 'specialties.json not readable' });
+    res.sendFile(SPECIALTIES_PATH);
+  });
+});
+
+// terms.jsonl (outside public)
+const TERMS_PATH = path.join(__dirname, 'data', 'terms.jsonl');
+app.get('/api/terms', (req, res) => {
+  res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+  const stream = fs.createReadStream(TERMS_PATH, { encoding: 'utf8' });
+  stream.on('error', (e) => {
+    console.error('Failed to open terms.jsonl:', e);
+    res.status(500).end(JSON.stringify({ error: 'Failed to load terms' }) + '\n');
+  });
+  stream.pipe(res);
+});
+
 // -------------------- SPA fallback (LAST) --------------------
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -150,14 +185,9 @@ app.listen(PORT, () => console.log(`MedLex server running on port ${PORT}`));
 
 // Serve specialties.json that lives OUTSIDE public/
 // Adjust the path below to your actual on-disk location
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
 
 // Example: file at project root: ./data/specialties.json
 // If yours is elsewhere, update this join(..) accordingly:
-const SPECIALTIES_PATH = path.join(__dirname, "data", "specialties.json");
 
 // Strongly prefer res.sendFile to avoid MIME/type issues
 app.get("/api/specialties", (req, res) => {
@@ -167,4 +197,11 @@ app.get("/api/specialties", (req, res) => {
       res.status(500).json({ error: "Failed to load specialties" });
     }
   });
+});
+
+// --- Listen (Replit/Render/Heroku style) ---
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`MedLex server listening on http://${HOST}:${PORT}`);
 });
