@@ -62,6 +62,78 @@ app.post('/api/translate', async (req, res) => {
   }
 });
 
+import fs from 'fs';
+import readline from 'readline';
+import path from 'path';
+
+// --- Helpers ---
+const DATA_DIR = path.join(__dirname, 'data');
+const TERMS_JSONL = path.join(DATA_DIR, 'terms.jsonl');
+
+/**
+ * Stream-read terms.jsonl into an array of objects.
+ * Each line should be a JSON object like:
+ * {"specialty":"cardiology","term_en":"tachycardia","term_es":"taquicardia", ...}
+ */
+async function readTermsJsonl() {
+  const items = [];
+  if (!fs.existsSync(TERMS_JSONL)) return items;
+
+  const rl = readline.createInterface({
+    input: fs.createReadStream(TERMS_JSONL, { encoding: 'utf8' }),
+    crlfDelay: Infinity
+  });
+
+  for await (const line of rl) {
+    const s = line.trim();
+    if (!s) continue;
+    try {
+      items.push(JSON.parse(s));
+    } catch (e) {
+      console.warn('Bad JSONL line (skipped):', s.slice(0, 120));
+    }
+  }
+  return items;
+}
+
+// GET /api/specialties -> ["cardiology", "neurology", ...]
+app.get('/api/specialties', async (req, res) => {
+  try {
+    const data = await readTermsJsonl();
+    const set = new Set(data.map(x => (x.specialty || '').trim()).filter(Boolean));
+    return res.json({ ok: true, specialties: Array.from(set).sort() });
+  } catch (e) {
+    console.error('specialties error', e);
+    return res.status(200).json({ ok: false, error: 'specialties_failed' });
+  }
+});
+
+// POST /api/terms { specialty, limit? } -> [{ term_en, term_es, ... }]
+app.post('/api/terms', async (req, res) => {
+  try {
+    const { specialty = '', limit = 200 } = req.body || {};
+    const low = String(specialty || '').toLowerCase();
+    const data = await readTermsJsonl();
+    const out = data.filter(x => String(x.specialty || '').toLowerCase() === low)
+                    .slice(0, Math.max(1, Math.min(limit, 1000)));
+    return res.json({ ok: true, items: out });
+  } catch (e) {
+    console.error('terms error', e);
+    return res.status(200).json({ ok: false, error: 'terms_failed' });
+  }
+});
+
+// POST /api/translate-term { text, source?, target? } -> { translation }
+app.post('/api/translate-term', async (req, res) => {
+  try {
+    const { text = '', source = 'auto', target = 'en' } = req.body || {};
+    const out = await translateText({ text, source, target });
+    return res.json({ ok: true, result: out });
+  } catch (e) {
+    console.error('translate-term error', e);
+    return res.status(200).json({ ok: false, error: e?.message || 'translate_term_failed' });
+  }
+});
 
 /* ------------------------------------------- */
 
