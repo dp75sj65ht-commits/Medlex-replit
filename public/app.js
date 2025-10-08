@@ -1932,14 +1932,13 @@ function rate(r){
 // specialties
 async function refreshSpecialties() {
   const r = await fetch('/api/specialties', { headers: { 'Accept': 'application/json' } });
-  const j = await r.json();               // now it's real JSON
+  const j = await r.json();
   if (!j.ok) throw new Error(j.error || 'specialties_failed');
-  // j.specialties is an array of strings
-  // ...render your list
+  return j.specialties;
 }
 
 // terms by specialty
-async function loadTerms(specialty) {
+async function loadTermsBySpecialty(specialty) {
   const r = await fetch('/api/terms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -1947,12 +1946,11 @@ async function loadTerms(specialty) {
   });
   const j = await r.json();
   if (!j.ok) throw new Error(j.error || 'terms_failed');
-  // j.items is an array; each item should have term_en/term_es if present in JSONL
-  return j.items;
+  return j.items; // e.g. [{term_en, term_es, ...}]
 }
 
 // translate one term
-async function translateTerm(text, source, target) {
+async function translateOne(text, source='auto', target='en') {
   const r = await fetch('/api/translate-term', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -1962,6 +1960,10 @@ async function translateTerm(text, source, target) {
   if (!j.ok) throw new Error(j.error || 'translate_failed');
   return j.result?.translation || '';
 }
+
+const safe = (v) => (v ?? '').toString();
+const en = safe(item.term_en || item.term);
+const es = safe(item.term_es);
 
 function renderTermRow(x = {}) {
   const en = x.term_en ?? x.term ?? '';
@@ -1973,3 +1975,4 @@ function renderTermRow(x = {}) {
     </div>
   `;
 }
+
