@@ -131,3 +131,9 @@ dist
 
 # Replit debugger
 .breakpoints
+.env
+*.db
+data/*.db
+node_modules/
+*.log
+.replit_secrets
