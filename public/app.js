@@ -1,60 +1,7 @@
-// --- guard: never initialize twice ---
-if (window.__medlexBooted) {
-  console.warn('MedLex already booted — skipping second init');
-} else {
-  window.__medlexBooted = true;
-
-  // Use safe helper names (avoid '$' collisions)
-  const qs  = (sel) => document.querySelector(sel);
-  const qsa = (sel) => Array.from(document.querySelectorAll(sel));
-
-  // OPTIONAL: keep ONE alias if you like jQuery-style calls.
-  // If you use this, do NOT declare '$' anywhere else in this file.
-  // const $  = qs;
-  // const $$ = qsa;
-
-  // ---- keep the rest of app.js BELOW this line, inside this block ----
-
-  // public/app.js v15 — multilingual flashcards + translate mode + auto direction
+// public/app.js v15 — multilingual flashcards + translate mode + auto direction
 console.log("MedLex app.js loaded v15");
 
-
-// Prevent double-execution if app.js is accidentally included twice
-if (window.__medlexBooted) {
-  console.warn('MedLex already booted, skipping second init');
-} else {
-  window.__medlexBooted = true;
-
-  // helpers (use distinct names, not $/$$ to avoid collisions)
-  const qs  = (s) => document.querySelector(s);
-  const qsa = (s) => Array.from(document.querySelectorAll(s));
-
-  // --- your router / listeners / code go here ---
-  // example router:
-  function activatePane(selector) {
-    const pane = document.querySelector(selector);
-    if (!pane) return console.warn('No pane for', selector);
-    qsa('.view').forEach(v => v.classList.remove('active'));
-    pane.classList.add('active');
-    const m = String(selector).match(/^#view-(.+)$/);
-    if (m) history.replaceState(null, '', `#${m[1]}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  document.addEventListener('click', (e) => {
-    const el = e.target.closest('[data-target]');
-    if (!el) return;
-    e.preventDefault();
-    activatePane(el.getAttribute('data-target'));
-  });
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const name = (location.hash || '#home').slice(1);
-    activatePane(name === 'home' ? '#view-home' : `#view-${name}`);
-  });
-
-  // ...keep the rest of your code inside this block...
-}
+const $ = (sel) => document.querySelector(sel);
 
 /* ---------------- Tabs ---------------- */
 document.addEventListener('click', (e) => {
@@ -83,36 +30,6 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
   const uid = $('#user-id'); if (uid) uid.textContent = state.userId;
   refreshUser();
-});
-
-
-function showView(name) {
-  $$('.view').forEach(v => v.classList.remove('active'));
-  const el = document.getElementById(`view-${name}`);
-  if (el) el.classList.add('active');
-  history.replaceState(null, '', `#${name}`);
-
-  // optional per-view hooks:
-  if (name === 'glossary' && typeof refreshSpecialties === 'function') {
-    refreshSpecialties().catch(console.warn);
-  }
-  if (name === 'flashcards' && typeof loadDue === 'function') {
-    loadDue();
-  }
-}
-
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-view]');
-  if (!btn) return;
-  e.preventDefault();
-  showView(btn.dataset.view);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-// open the correct view on first load
-window.addEventListener('DOMContentLoaded', () => {
-  const initial = (location.hash || '#home').slice(1);
-  showView(initial);
 });
 
 /* ---------------- Fetch helpers ---------------- */
@@ -1211,7 +1128,8 @@ document.addEventListener('click', async (e) => {
   const defaultEase = 2.5;
   const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-
+  // Scoped selectors
+  const $ = (sel) => root.querySelector(sel);
   // try inside #flashcards first, then global document
   const byId = (id) => root.querySelector('#' + id) || document.getElementById(id);
 
@@ -2010,168 +1928,3 @@ function rate(r){
     }
   });
 })();
-
-// specialties
-async function refreshSpecialties() {
-  const r = await fetch('/api/specialties', { headers: { 'Accept': 'application/json' } });
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'specialties_failed');
-  return j.specialties;
-}
-
-// terms by specialty
-async function loadTermsBySpecialty(specialty) {
-  const r = await fetch('/api/terms', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ specialty, limit: 200 })
-  });
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'terms_failed');
-  return j.items; // e.g. [{term_en, term_es, ...}]
-}
-
-// translate one term
-async function translateOne(text, source='auto', target='en') {
-  const r = await fetch('/api/translate-term', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ text, source, target })
-  });
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'translate_failed');
-  return j.result?.translation || '';
-}
-
-const safe = (v) => (v ?? '').toString();
-const en = safe(item.term_en || item.term);
-const es = safe(item.term_es);
-
-function renderTermRow(x = {}) {
-  const en = x.term_en ?? x.term ?? '';
-  const es = x.term_es ?? '';
-  return `
-    <div class="term-row">
-      <div class="en">${escapeHtml(en)}</div>
-      <div class="es">${escapeHtml(es)}</div>
-    </div>
-  `;
-}
-
-// ---- API helpers ----
-async function fetchSpecialties() {
-  const r = await fetch('/api/specialties', { headers: { 'Accept': 'application/json' } });
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'specialties_failed');
-  return j.specialties; // array of strings
-}
-
-async function fetchTerms(specialty) {
-  const r = await fetch('/api/terms', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ specialty })
-  });
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'terms_failed');
-  return j.items; // array of term objects
-}
-
-async function fetchTranslate(text, source = 'auto', target = 'en') {
-  const r = await fetch('/api/translate-term', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ text, source, target })
-  });
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'translate_failed');
-  return j.result?.translation || '';
-}
-
-// ---- safe rendering helpers ----
-const safe = (v) => (v ?? '').toString();
-
-function renderItems(items = [], host = document.getElementById('results')) {
-  if (!host) return;
-  const html = items.map(item => {
-    const en = safe(item.term_en ?? item.term);
-    const es = safe(item.term_es);
-    return `<div class="term-row"><div class="en">${en}</div><div class="es">${es}</div></div>`;
-  }).join('');
-  host.innerHTML = html || '<p>No results.</p>';
-}
-
-// ---- dropdown toggles ----
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.dropdown-toggle[data-target]');
-  if (!btn) return;
-  const panel = document.getElementById(btn.dataset.target);
-  if (panel) { panel.classList.toggle('open'); btn.classList.toggle('active'); }
-});
-
-// ---- app boot (runs after DOM is ready) ----
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    // Example usage. Hook these to your real buttons/inputs as needed:
-    // const specialties = await fetchSpecialties();
-    // renderSpecialtyList(specialties);
-
-    // Example: load terms for a default specialty if you have one:
-    // const items = await fetchTerms('cardiology');
-    // renderItems(items);
-
-    // Example: translate one text
-    // const t = await fetchTranslate('taquicardia', 'pt', 'en');
-    // console.log('translation:', t);
-  } catch (err) {
-    console.warn('Boot error:', err);
-  }
-});
-
-// If you want to fetch on button click, make the handler async:
-document.getElementById('glossaryBtn')?.addEventListener('click', async () => {
-  const specialty = document.getElementById('specialtySelect')?.value || '';
-  const items = await fetchTerms(specialty);
-  renderItems(items, document.getElementById('results'));
-});
-
-document.getElementById('translateBtn')?.addEventListener('click', async () => {
-  const input = document.getElementById('translateInput')?.value || '';
-  const out = await fetchTranslate(input, 'auto', 'en');
-  document.getElementById('translateOutput').textContent = out;
-});
-
-
-function showView(name) {
-  // deactivate all views
-  $$('.view').forEach(v => v.classList.remove('active'));
-  // activate the requested one
-  const el = document.getElementById(`view-${name}`);
-  if (el) el.classList.add('active');
-
-  // reflect in URL (no full reload)
-  history.replaceState(null, '', `#${name}`);
-
-  // optional: run per-view boot logic
-  if (name === 'glossary' && typeof refreshSpecialties === 'function') {
-    refreshSpecialties().catch(console.warn);
-  }
-  if (name === 'flashcards' && typeof loadDue === 'function') {
-    loadDue();
-  }
-}
-
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-view]');
-  if (!btn) return;
-  e.preventDefault();
-  showView(btn.dataset.view);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-// open the right view on first load (supports links like #translate)
-window.addEventListener('DOMContentLoaded', () => {
-  const initial = (location.hash || '#home').slice(1);
-  showView(initial);
-});
-}

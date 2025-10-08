@@ -30,9 +30,9 @@
             Study tools ▾
           </button>
           <div id="menu-study-pop" class="menu-pop" role="menu" hidden>
-            <button class="tool-card" data-view="flashcards">Flashcards</button>
-            <button class="tool-card" data-view="enrich">Enrich</button>
-            <button class="tool-card" data-view="anatomy">Anatomy</button>
+            <button role="menuitem" class="menu-item" data-tab="flashcards">Flashcards</button>
+            <button role="menuitem" class="menu-item" data-tab="enrich">Enrich</button>
+            <button role="menuitem" class="menu-item" data-tab="anatomy">Anatomy</button>
           </div>
         </div>
 
@@ -42,8 +42,8 @@
             Translation tools ▾
           </button>
           <div id="menu-translate-pop" class="menu-pop" role="menu" hidden>
-            <button class="tool-card" data-view="glossary">Glossary</button>
-            <button class="tool-card" data-view="translate">Translate</button>
+            <button role="menuitem" class="menu-item" data-tab="glossary">Glossary</button>
+            <button role="menuitem" class="menu-item" data-tab="translate">Translate</button>
           </div>
         </div>
 
@@ -67,7 +67,7 @@
   <div id="app-root">
     <!-- your app: nav, tabs, etc. -->
   </div>
-      <section id="view-home"class="view active">
+
   <!-- Welcome / Landing -->
   <div id="welcome" hidden>
     <div class="welcome-card" role="dialog" aria-labelledby="welcome-title">
@@ -174,8 +174,7 @@
   </div>
 
   <main>
-    
-    <section id="view-translate"class="view">
+
     <!-- TRANSLATE (original IDs preserved) -->
     <section id="translate" class="tab active">
       <h2>Translate term</h2>
@@ -208,8 +207,7 @@
       <div id="result"></div>
     </section>
 
-    <section id="view-glossary"class="view">
-      <!-- GLOSSARY (original IDs preserved) -->
+    <!-- GLOSSARY (original IDs preserved) -->
     <section id="glossary" class="tab">
       <h2>Glossary</h2>
 
@@ -239,7 +237,7 @@
       <ul id="termList"></ul>
     </section>
 
-      <!-- FLASHCARDS -->
+    <!-- FLASHCARDS -->
     <section id="flashcards" class="tab">
       <!-- Flashcards — Quizlet-style inside #flashcards -->
       <header class="fc-header">
@@ -296,7 +294,6 @@
         <!-- Quick deck grid -->
         <section id="fc-deck-grid" class="hidden" aria-label="Deck chooser"></section>
 
-        <section id="view-flashcards"class="view">
         <!-- FLASHCARDS UI -->
         <section id="fc-ui-flashcards" class="fc-ui">
           <div id="fc-study" class="fc-panel">
@@ -387,7 +384,6 @@
       </main>
     </section>
 
-       <section id="view-enrich"class="view">
     <!-- ENRICH -->
     <section id="enrich" class="tab">
       <h2>AI Definition Generator</h2>
@@ -414,8 +410,7 @@
       <div id="enrich-result" class="card" style="min-height:90px;"></div>
     </section>
 
-    <section id="view-anatomy"class="view">
-      <!-- ANATOMY (image + overlay; safe script below) -->
+    <!-- ANATOMY (image + overlay; safe script below) -->
     <section id="anatomy" class="tab">
       <h2>Anatomy</h2>
       <p class="muted">External body parts only (Phase 1). Click/tap regions. Preferred language shown first.</p>
@@ -565,6 +560,9 @@
       <p class="muted">Tip: install this as an app from your browser menu.</p>
     </section>
   </main>
+
+  <!-- Keep your real app logic intact -->
+  <script src="/app.js?v=21"></script>
 
   <script>
   document.querySelector('nav').addEventListener('click', e => {
@@ -853,14 +851,12 @@
   })();
   </script>
 
-  <!-- Keep just this one -->
- <script type="module" src="/app.js?v=34"></script>
+  <!-- Profile / Plans Modal -->
 
-      <button type="button" class="tool-card" data-target="#view-flashcards">Flashcards</button>
-      <button type="button" class="tool-card" data-target="#view-enrich">Enrich</button>
-      <button type="button" class="tool-card" data-target="#view-anatomy">Anatomy</button>
-      <button type="button" class="tool-card" data-target="#view-glossary">Glossary</button>
-      <button type="button" class="tool-card" data-target="#view-translate">Translate</button>
+  <!-- A small “account” button somewhere in your header/nav -->
+
+  <!-- Paywall (shown when a locked feature is clicked) -->
+
 
 </body>
 </html>
