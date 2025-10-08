@@ -1,18 +1,97 @@
-// public/app.js (top lines)
-if (window.__medlexBooted) {
-  console.warn("MedLex already booted — ignoring second include");
-  // Important: bail before attaching any listeners
-  throw new Error("BOOT_GUARD"); // prevents second run cleanly
+// --- One-time init guard (single entry point) ---
+if (window.__medlexInit) {
+  console.warn("MedLex already booted — ignoring subsequent init()");
+} else {
+  window.__medlexInit = true;
+  console.log("MedLex app.js loaded v15");
+
+  // Selector shims
+  window.$  = window.$  || ((sel, root = document) => root.querySelector(sel));
+  window.$$ = window.$$ || ((sel, root = document) => Array.from(root.querySelectorAll(sel)));
+
+  // ---------- Glossary state ----------
+  const glossaryState = {
+    loaded: false,
+    allTerms: [],   // raw array of term objects
+  };
+
+  // Render a simple card list of terms
+  function renderGlossary(terms) {
+    let host = $('#glossary-list');
+    if (!host) {
+      // create host if missing
+      const g = $('#glossary') || document.body;
+      host = document.createElement('div');
+      host.id = 'glossary-list';
+      g.appendChild(host);
+    }
+    if (!Array.isArray(terms) || terms.length === 0) {
+      host.innerHTML = `<p style="opacity:.7">No terms to show.</p>`;
+      return;
+    }
+
+    // Expecting objects like { term, definition, specialty, lang }
+    host.innerHTML = terms.slice(0, 500).map(t => {
+      const term = (t.term || t.word || t.key || '').toString();
+      const def  = (t.definition || t.def || t.explanation || '').toString();
+      const spec = (t.specialty || t.category || '').toString();
+      const lang = (t.lang || t.language || '').toString();
+      return `
+        <article class="glossary-item" style="padding:.75rem 1rem;border-bottom:1px solid #eee">
+          <div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;">
+            <h4 style="margin:0">${term || '(term)'}</h4>
+            <small style="opacity:.6">${[spec, lang].filter(Boolean).join(' · ')}</small>
+          </div>
+          <p style="margin:.4rem 0 0">${def || '<i style="opacity:.7">No definition available</i>'}</p>
+        </article>
+      `;
+    }).join('');
+  }
+
+  // Simple search filter over the already loaded terms
+  function filterGlossary(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return renderGlossary(glossaryState.allTerms);
+    const out = glossaryState.allTerms.filter(t => {
+      const term = (t.term || t.word || '').toString().toLowerCase();
+      const def  = (t.definition || t.def || '').toString().toLowerCase();
+      const spec = (t.specialty || '').toString().toLowerCase();
+      return term.includes(q) || def.includes(q) || spec.includes(q);
+    });
+    renderGlossary(out);
+  }
+
+  
+
+  
+
+  function init() {
+    // Remove any prior handler (if hot-reloaded) then attach exactly one
+    if (window.__medlexClickHandler) {
+      document.removeEventListener("click", window.__medlexClickHandler);
+    }
+    window.__medlexClickHandler = (e) => {
+      const b = e.target.closest('nav button');
+      if (!b) return;
+      $$('.active').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const pane = document.getElementById(b.dataset.tab);
+      if (pane) pane.classList.add('active');
+    };
+    document.addEventListener("click", window.__medlexClickHandler, { passive: true });
+    console.log("✅ Button listeners attached");
+
+    // kick off your data loads exactly once
+    refreshSpecialties();
+    // loadTerms() — call here or only when that tab opens
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
 }
-window.__medlexBooted = true;
-
-console.log("MedLex app.js loaded v15");
-
-// public/app.js v15 — multilingual flashcards + translate mode + auto direction
-console.log("MedLex app.js loaded v15");
-
-const $ = (sel) => document.querySelector(sel);
-
 
 /* ---------------- Tabs ---------------- */
 document.addEventListener('click', (e) => {
@@ -117,27 +196,19 @@ const DefCache = {
 // ---- Replace the old function with this version ----
 async function refreshSpecialties() {
   try {
-    // 🔧 Change this path if your JSON lives elsewhere
-    const url = "/api/specialties";
-    console.log("🔎 Fetching specialties from", url);
-
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch("/api/specialties", { cache: "no-store" });
     const text = await res.text();
 
-    console.log("📦 Response starts with:", text.slice(0, 60));
-
-    // 🚫 Detects HTML instead of JSON
-    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
-      throw new Error("Got HTML instead of JSON — wrong path?");
+    const T = text.trim().toUpperCase();
+    if (T.startsWith("<!DOCTYPE") || T.startsWith("<HTML")) {
+      throw new Error("Got HTML instead of JSON");
     }
 
-    // ✅ Parse JSON safely
-    const specialties = JSON.parse(text);
-    console.log("✅ Parsed specialties:", specialties.length);
+    const data = JSON.parse(text);               // { specialties: [...] }
+    const list = Array.isArray(data) ? data : (data.specialties || []);
+    console.log("✅ Parsed specialties:", list.length);
 
-    // TODO: render your list or populate the DOM here
-    // e.g., populateSpecialtyList(specialties);
-
+    // TODO: render using `list`
   } catch (err) {
     console.error("specialty refresh failed:", err);
   }
@@ -783,19 +854,43 @@ function applyClientFilters(rows) {
   return rows.filter(t => matchesSpecialty(t, spec) && matchesSearch(t, q));
 }
 
+  
+
 /* Fetch-all + filter on client */
 async function loadTerms() {
-  const list = document.querySelector('#terms-list'); if (!list) return;
-  list.innerHTML = `<div class="card">Loading…</div>`;
   try {
-    const r = await fetch('/api/terms');
-    const text = await r.text();
-    const json = JSON.parse(text);
-    const rows = applyClientFilters(Array.isArray(json.data) ? json.data : []);
-    list.innerHTML = renderTermsCards(rows);
-  } catch (e) {
-    list.innerHTML = `<div class="card error">Error: ${(e && e.message) || e}</div>`;
-    console.error(e);
+    const res = await fetch("/api/terms", { cache: "no-store" });
+    const text = await res.text();
+
+    const T = text.trim().toUpperCase();
+    if (T.startsWith("<!DOCTYPE") || T.startsWith("<HTML")) {
+      throw new Error("Got HTML instead of NDJSON — check /api/terms route");
+    }
+
+    const terms = [];
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line) continue;
+      try {
+        terms.push(JSON.parse(line));
+      } catch {
+        // try to salvage a JSON object if there is junk around it
+        const i = line.indexOf("{"), j = line.lastIndexOf("}");
+        if (i >= 0 && j > i) {
+          try { terms.push(JSON.parse(line.slice(i, j + 1))); } catch {}
+        }
+      }
+    }
+
+    console.log("✅ Parsed terms:", terms.length);
+    glossaryState.allTerms = terms;
+    glossaryState.loaded = true;
+    renderGlossary(terms);
+
+  } catch (err) {
+    console.error("loadTerms failed:", err);
+    const host = $('#glossary-list');
+    if (host) host.innerHTML = `<p style="color:#b00">Failed to load terms: ${err.message}</p>`;
   }
 }
 
@@ -1959,3 +2054,26 @@ window.__medlexBooted = true;
 // -----------------------------------------
 
 console.log("MedLex app.js loaded v15");
+
+function init() {
+  // attach tab click handlers etc.
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('nav button');
+    if (!b) return;
+    document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const pane = document.getElementById(b.dataset.tab);
+    if (pane) pane.classList.add('active');
+  });
+  console.log("✅ Button listeners attached");
+}
+
+if (window.__medlexBooted && !window.__medlexInited) {
+  window.__medlexInited = true;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+}
