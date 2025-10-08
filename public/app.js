@@ -32,6 +32,39 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshUser();
 });
 
+// --- mini SPA router ---
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const $  = (s) => document.querySelector(s);
+
+function showView(name) {
+  $$('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById(`view-${name}`);
+  if (el) el.classList.add('active');
+  history.replaceState(null, '', `#${name}`);
+
+  // optional per-view hooks:
+  if (name === 'glossary' && typeof refreshSpecialties === 'function') {
+    refreshSpecialties().catch(console.warn);
+  }
+  if (name === 'flashcards' && typeof loadDue === 'function') {
+    loadDue();
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-view]');
+  if (!btn) return;
+  e.preventDefault();
+  showView(btn.dataset.view);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// open the correct view on first load
+window.addEventListener('DOMContentLoaded', () => {
+  const initial = (location.hash || '#home').slice(1);
+  showView(initial);
+});
+
 /* ---------------- Fetch helpers ---------------- */
 async function getJSON(url, opts) {
   const r = await fetch(url, opts);

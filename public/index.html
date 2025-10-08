@@ -30,9 +30,9 @@
             Study tools ▾
           </button>
           <div id="menu-study-pop" class="menu-pop" role="menu" hidden>
-            <button role="menuitem" class="menu-item" data-view="flashcards">Flashcards</button>
-            <button role="menuitem" class="menu-item" data-view="enrich">Enrich</button>
-            <button role="menuitem" class="menu-item" data-view="anatomy">Anatomy</button>
+            <button class="tool-card" data-view="flashcards">Flashcards</button>
+            <button class="tool-card" data-view="enrich">Enrich</button>
+            <button class="tool-card" data-view="anatomy">Anatomy</button>
           </div>
         </div>
 
@@ -42,8 +42,8 @@
             Translation tools ▾
           </button>
           <div id="menu-translate-pop" class="menu-pop" role="menu" hidden>
-            <button role="menuitem" class="menu-item" data-view="glossary">Glossary</button>
-            <button role="menuitem" class="menu-item" data-view="translate">Translate</button>
+            <button class="tool-card" data-view="glossary">Glossary</button>
+            <button class="tool-card" data-view="translate">Translate</button>
           </div>
         </div>
 
@@ -67,7 +67,7 @@
   <div id="app-root">
     <!-- your app: nav, tabs, etc. -->
   </div>
-
+      <section id="view-home"class="view active">
   <!-- Welcome / Landing -->
   <div id="welcome" hidden>
     <div class="welcome-card" role="dialog" aria-labelledby="welcome-title">
@@ -174,7 +174,8 @@
   </div>
 
   <main>
-
+    
+    <section id="view-translate"class="view">
     <!-- TRANSLATE (original IDs preserved) -->
     <section id="translate" class="tab active">
       <h2>Translate term</h2>
@@ -207,7 +208,8 @@
       <div id="result"></div>
     </section>
 
-    <!-- GLOSSARY (original IDs preserved) -->
+    <section id="view-glossary"class="view">
+      <!-- GLOSSARY (original IDs preserved) -->
     <section id="glossary" class="tab">
       <h2>Glossary</h2>
 
@@ -237,7 +239,7 @@
       <ul id="termList"></ul>
     </section>
 
-    <!-- FLASHCARDS -->
+      <!-- FLASHCARDS -->
     <section id="flashcards" class="tab">
       <!-- Flashcards — Quizlet-style inside #flashcards -->
       <header class="fc-header">
@@ -294,6 +296,7 @@
         <!-- Quick deck grid -->
         <section id="fc-deck-grid" class="hidden" aria-label="Deck chooser"></section>
 
+        <section id="view-flashcards"class="view">
         <!-- FLASHCARDS UI -->
         <section id="fc-ui-flashcards" class="fc-ui">
           <div id="fc-study" class="fc-panel">
@@ -384,6 +387,7 @@
       </main>
     </section>
 
+       <section id="view-enrich"class="view">
     <!-- ENRICH -->
     <section id="enrich" class="tab">
       <h2>AI Definition Generator</h2>
@@ -410,7 +414,8 @@
       <div id="enrich-result" class="card" style="min-height:90px;"></div>
     </section>
 
-    <!-- ANATOMY (image + overlay; safe script below) -->
+    <section id="view-anatomy"class="view">
+      <!-- ANATOMY (image + overlay; safe script below) -->
     <section id="anatomy" class="tab">
       <h2>Anatomy</h2>
       <p class="muted">External body parts only (Phase 1). Click/tap regions. Preferred language shown first.</p>
@@ -860,7 +865,7 @@
   <link rel="stylesheet" href="/styles.css?v=29">
 
   <!-- keep ONE of these, exactly, near the end of <body> -->
-  <script type="module" src="/app.js?v=30"></script>
+  <script type="module" src="/app.js?v=31"></script>
 
 </body>
 </html>
