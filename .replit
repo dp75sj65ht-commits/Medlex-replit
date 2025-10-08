@@ -7,3 +7,6 @@ externalPort = 5000
 
 [agent]
 expertMode = true
+
+[nix]
+packages = ["lsof"]
