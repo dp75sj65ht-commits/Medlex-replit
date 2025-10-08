@@ -43,19 +43,25 @@ app.get('/api/health', (req, res) => {
 });
 
 // Translate (wire your translator.js here)
-import { translateText } from './translator.js'; // ensure this function exists
 app.post('/api/translate', async (req, res) => {
   try {
     const { text, source, target } = req.body || {};
+    console.log('[translate] body:', { text, source, target });
+    console.log('[translate] env:', {
+      HF_API_KEY: Boolean(process.env.HF_API_KEY),
+      HF_MODEL: process.env.HF_MODEL
+    });
+
     const out = await translateText({ text, source, target });
     return res.json({ ok: true, result: out });
   } catch (err) {
     const msg = err?.message || String(err);
     console.error('translate error:', msg, err?.stack || '');
-    // Return 200 with ok:false so the client can read the message easily
+    // keep HTTP 200 so curl/UI can read the message
     return res.status(200).json({ ok: false, error: msg });
   }
 });
+
 
 /* ------------------------------------------- */
 
