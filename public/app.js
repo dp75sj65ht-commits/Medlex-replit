@@ -2058,3 +2058,40 @@ document.getElementById('translateBtn')?.addEventListener('click', async () => {
   const out = await fetchTranslate(input, 'auto', 'en');
   document.getElementById('translateOutput').textContent = out;
 });
+
+// simple SPA view switcher
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const $  = (s) => document.querySelector(s);
+
+function showView(name) {
+  // deactivate all views
+  $$('.view').forEach(v => v.classList.remove('active'));
+  // activate the requested one
+  const el = document.getElementById(`view-${name}`);
+  if (el) el.classList.add('active');
+
+  // reflect in URL (no full reload)
+  history.replaceState(null, '', `#${name}`);
+
+  // optional: run per-view boot logic
+  if (name === 'glossary' && typeof refreshSpecialties === 'function') {
+    refreshSpecialties().catch(console.warn);
+  }
+  if (name === 'flashcards' && typeof loadDue === 'function') {
+    loadDue();
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-view]');
+  if (!btn) return;
+  e.preventDefault();
+  showView(btn.dataset.view);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// open the right view on first load (supports links like #translate)
+window.addEventListener('DOMContentLoaded', () => {
+  const initial = (location.hash || '#home').slice(1);
+  showView(initial);
+});

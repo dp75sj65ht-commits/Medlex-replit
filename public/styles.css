@@ -436,3 +436,6 @@ body.no-scroll { overflow: hidden; }
 
 .dropdown-panel{display:none;margin:8px 0}
 .dropdown-panel.open{display:block}
+
+.view { display: none; }
+.view.active { display: block; }
