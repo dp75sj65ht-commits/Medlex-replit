@@ -1976,17 +1976,85 @@ function renderTermRow(x = {}) {
   `;
 }
 
-await fetch('/api/specialties');             // GET -> {ok, specialties}
-await fetch('/api/terms', { method:'POST', body: JSON.stringify({specialty}) });
-await fetch('/api/translate-term', { method:'POST', body: JSON.stringify({text, source, target}) });
+// ---- API helpers ----
+async function fetchSpecialties() {
+  const r = await fetch('/api/specialties', { headers: { 'Accept': 'application/json' } });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'specialties_failed');
+  return j.specialties; // array of strings
+}
 
+async function fetchTerms(specialty) {
+  const r = await fetch('/api/terms', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ specialty })
+  });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'terms_failed');
+  return j.items; // array of term objects
+}
+
+async function fetchTranslate(text, source = 'auto', target = 'en') {
+  const r = await fetch('/api/translate-term', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ text, source, target })
+  });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'translate_failed');
+  return j.result?.translation || '';
+}
+
+// ---- safe rendering helpers ----
 const safe = (v) => (v ?? '').toString();
-const en = safe(item.term_en || item.term);
-const es = safe(item.term_es);
 
-document.addEventListener('click', (e)=>{
-  const btn=e.target.closest('.dropdown-toggle[data-target]');
-  if(!btn) return;
-  const panel=document.getElementById(btn.dataset.target);
-  if(panel){ panel.classList.toggle('open'); btn.classList.toggle('active'); }
+function renderItems(items = [], host = document.getElementById('results')) {
+  if (!host) return;
+  const html = items.map(item => {
+    const en = safe(item.term_en ?? item.term);
+    const es = safe(item.term_es);
+    return `<div class="term-row"><div class="en">${en}</div><div class="es">${es}</div></div>`;
+  }).join('');
+  host.innerHTML = html || '<p>No results.</p>';
+}
+
+// ---- dropdown toggles ----
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.dropdown-toggle[data-target]');
+  if (!btn) return;
+  const panel = document.getElementById(btn.dataset.target);
+  if (panel) { panel.classList.toggle('open'); btn.classList.toggle('active'); }
+});
+
+// ---- app boot (runs after DOM is ready) ----
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Example usage. Hook these to your real buttons/inputs as needed:
+    // const specialties = await fetchSpecialties();
+    // renderSpecialtyList(specialties);
+
+    // Example: load terms for a default specialty if you have one:
+    // const items = await fetchTerms('cardiology');
+    // renderItems(items);
+
+    // Example: translate one text
+    // const t = await fetchTranslate('taquicardia', 'pt', 'en');
+    // console.log('translation:', t);
+  } catch (err) {
+    console.warn('Boot error:', err);
+  }
+});
+
+// If you want to fetch on button click, make the handler async:
+document.getElementById('glossaryBtn')?.addEventListener('click', async () => {
+  const specialty = document.getElementById('specialtySelect')?.value || '';
+  const items = await fetchTerms(specialty);
+  renderItems(items, document.getElementById('results'));
+});
+
+document.getElementById('translateBtn')?.addEventListener('click', async () => {
+  const input = document.getElementById('translateInput')?.value || '';
+  const out = await fetchTranslate(input, 'auto', 'en');
+  document.getElementById('translateOutput').textContent = out;
 });

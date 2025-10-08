@@ -561,9 +561,6 @@
     </section>
   </main>
 
-  <!-- Keep your real app logic intact -->
-  <script src="/app.js?v=21"></script>
-
   <script>
   document.querySelector('nav').addEventListener('click', e => {
     const t = e.target.closest('[data-tab]');
@@ -862,6 +859,9 @@
 
   <link rel="stylesheet" href="/styles.css?v=29">
   <script defer src="/app.js?v=29"></script>
+
+  <!-- keep ONE of these, exactly, near the end of <body> -->
+  <script type="module" src="/app.js?v=30"></script>
 
 </body>
 </html>
