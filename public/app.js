@@ -73,22 +73,27 @@ if (window.__medlexInit) {
         const text = await res.text();
 
         const U = text.trim().toUpperCase();
-        if (U.startsWith('<!DOCTYPE') || U.startsWith('<HTML')) {
-          throw new Error('Got HTML instead of NDJSON — check /api/terms route is above SPA catch-all');
+        if (U.startsWith("<!DOCTYPE") || U.startsWith("<HTML")) {
+          throw new Error("Got HTML instead of NDJSON — ensure /api/terms is above SPA catch-all");
         }
 
+        // Parse NDJSON (one JSON object per line)
         const terms = [];
         for (const raw of text.split(/\r?\n/)) {
           const line = raw.trim();
           if (!line) continue;
-          try { terms.push(JSON.parse(line)); }
-          catch {
-            const i = line.indexOf('{'), j = line.lastIndexOf('}');
-            if (i >= 0 && j > i) { try { terms.push(JSON.parse(line.slice(i, j + 1))); } catch {} }
+          try {
+            terms.push(JSON.parse(line));
+          } catch {
+            // salvage JSON if junk wraps the braces
+            const i = line.indexOf("{"), j = line.lastIndexOf("}");
+            if (i >= 0 && j > i) {
+              try { terms.push(JSON.parse(line.slice(i, j + 1))); } catch {}
+            }
           }
         }
 
-        console.log('✅ Parsed terms:', terms.length);
+        console.log("✅ Parsed terms:", terms.length);
         state.terms = terms;
         state.loaded = true;
         render(terms);
@@ -122,61 +127,6 @@ if (window.__medlexInit) {
     window.__medlexGlossary.wire   = wire;
   })();
 
-  // ---------- Glossary state ----------
-  const glossaryState = {
-    loaded: false,
-    allTerms: [],   // raw array of term objects
-  };
-
-  // Render a simple card list of terms
-  function renderGlossary(terms) {
-    let host = $('#glossary-list');
-    if (!host) {
-      // create host if missing
-      const g = $('#glossary') || document.body;
-      host = document.createElement('div');
-      host.id = 'glossary-list';
-      g.appendChild(host);
-    }
-    if (!Array.isArray(terms) || terms.length === 0) {
-      host.innerHTML = `<p style="opacity:.7">No terms to show.</p>`;
-      return;
-    }
-
-    // Expecting objects like { term, definition, specialty, lang }
-    host.innerHTML = terms.slice(0, 500).map(t => {
-      const term = (t.term || t.word || t.key || '').toString();
-      const def  = (t.definition || t.def || t.explanation || '').toString();
-      const spec = (t.specialty || t.category || '').toString();
-      const lang = (t.lang || t.language || '').toString();
-      return `
-        <article class="glossary-item" style="padding:.75rem 1rem;border-bottom:1px solid #eee">
-          <div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;">
-            <h4 style="margin:0">${term || '(term)'}</h4>
-            <small style="opacity:.6">${[spec, lang].filter(Boolean).join(' · ')}</small>
-          </div>
-          <p style="margin:.4rem 0 0">${def || '<i style="opacity:.7">No definition available</i>'}</p>
-        </article>
-      `;
-    }).join('');
-  }
-
-  // Simple search filter over the already loaded terms
-  function filterGlossary(query) {
-    const q = (query || '').trim().toLowerCase();
-    if (!q) return renderGlossary(glossaryState.allTerms);
-    const out = glossaryState.allTerms.filter(t => {
-      const term = (t.term || t.word || '').toString().toLowerCase();
-      const def  = (t.definition || t.def || '').toString().toLowerCase();
-      const spec = (t.specialty || '').toString().toLowerCase();
-      return term.includes(q) || def.includes(q) || spec.includes(q);
-    });
-    renderGlossary(out);
-  }
-
-  
-
-  
 
   function init() {
     // Remove any prior handler (if hot-reloaded) then attach exactly one
