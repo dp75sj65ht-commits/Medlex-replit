@@ -125,6 +125,8 @@ if (window.__medlexInit) {
     window.__medlexGlossary.load   = load;
     
     window.__medlexGlossary.wire   = wire;
+    // Alias any legacy global calls to our new loader
+    window.loadTerms = load;
   })();
 
 
@@ -157,17 +159,6 @@ if (window.__medlexInit) {
 }
 
 
-/* ---------------- Tabs ---------------- */
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('nav button');
-  if (!b) return;
-  document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  b.classList.add('active');
-  const pane = document.getElementById(b.dataset.tab);
-  if (pane) pane.classList.add('active');
-  if (b.dataset.tab === 'flashcards') loadDue(); // safe if #due-list not present
-});
 
 /* ---------------- User state ---------------- */
 const state = {

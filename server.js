@@ -13,15 +13,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // 2) APIs (ABOVE catch-all)
 
-// /api/specialties (optional; keep if you use it)
-const SPECIALTIES_PATH = path.join(__dirname, "data", "specialties.json");
-app.get("/api/specialties", (req, res) => {
-  fs.access(SPECIALTIES_PATH, fs.constants.R_OK, (err) => {
-    if (err) return res.status(500).json({ error: "specialties.json not readable" });
-    res.sendFile(SPECIALTIES_PATH);
-  });
-});
-
 // /api/terms -> stream NDJSON from data/terms.jsonl
 const TERMS_PATH = path.join(__dirname, "data", "terms.jsonl");
 app.get("/api/terms", (req, res) => {
@@ -34,7 +25,16 @@ app.get("/api/terms", (req, res) => {
   stream.pipe(res);
 });
 
-// 3) health check (handy)
+// (optional) /api/specialties if you use it
+const SPECIALTIES_PATH = path.join(__dirname, "data", "specialties.json");
+app.get("/api/specialties", (req, res) => {
+  fs.access(SPECIALTIES_PATH, fs.constants.R_OK, (err) => {
+    if (err) return res.status(500).json({ error: "specialties.json not readable" });
+    res.sendFile(SPECIALTIES_PATH);
+  });
+});
+
+// 3) health check
 app.get("/healthz", (req, res) => res.status(200).json({ ok: true }));
 
 // 4) SPA catch-all LAST

@@ -404,7 +404,7 @@ body.no-scroll { overflow: hidden; }
 
 /* Welcome Choosers */
 .welcome-choosers { margin: 1rem 0 1.25rem; display: grid; gap: 12px; }
-.chooser { border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.03); overflow: hidden; }
+.chooser { border: 2px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.03); overflow: hidden; }
 .chooser > summary { cursor: pointer; list-style: none; padding: .9rem 1rem; display:flex; align-items: baseline; gap:.6rem; }
 .chooser > summary::-webkit-details-marker { display:none; }
 .chooser > summary span { font-weight: 700; }
