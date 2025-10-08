@@ -1,7 +1,60 @@
-// public/app.js v15 — multilingual flashcards + translate mode + auto direction
+// --- guard: never initialize twice ---
+if (window.__medlexBooted) {
+  console.warn('MedLex already booted — skipping second init');
+} else {
+  window.__medlexBooted = true;
+
+  // Use safe helper names (avoid '$' collisions)
+  const qs  = (sel) => document.querySelector(sel);
+  const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+
+  // OPTIONAL: keep ONE alias if you like jQuery-style calls.
+  // If you use this, do NOT declare '$' anywhere else in this file.
+  // const $  = qs;
+  // const $$ = qsa;
+
+  // ---- keep the rest of app.js BELOW this line, inside this block ----
+
+  // public/app.js v15 — multilingual flashcards + translate mode + auto direction
 console.log("MedLex app.js loaded v15");
 
-const $ = (sel) => document.querySelector(sel);
+
+// Prevent double-execution if app.js is accidentally included twice
+if (window.__medlexBooted) {
+  console.warn('MedLex already booted, skipping second init');
+} else {
+  window.__medlexBooted = true;
+
+  // helpers (use distinct names, not $/$$ to avoid collisions)
+  const qs  = (s) => document.querySelector(s);
+  const qsa = (s) => Array.from(document.querySelectorAll(s));
+
+  // --- your router / listeners / code go here ---
+  // example router:
+  function activatePane(selector) {
+    const pane = document.querySelector(selector);
+    if (!pane) return console.warn('No pane for', selector);
+    qsa('.view').forEach(v => v.classList.remove('active'));
+    pane.classList.add('active');
+    const m = String(selector).match(/^#view-(.+)$/);
+    if (m) history.replaceState(null, '', `#${m[1]}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-target]');
+    if (!el) return;
+    e.preventDefault();
+    activatePane(el.getAttribute('data-target'));
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const name = (location.hash || '#home').slice(1);
+    activatePane(name === 'home' ? '#view-home' : `#view-${name}`);
+  });
+
+  // ...keep the rest of your code inside this block...
+}
 
 /* ---------------- Tabs ---------------- */
 document.addEventListener('click', (e) => {
@@ -32,9 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshUser();
 });
 
-// --- mini SPA router ---
-const $$ = (s) => Array.from(document.querySelectorAll(s));
-const $  = (s) => document.querySelector(s);
 
 function showView(name) {
   $$('.view').forEach(v => v.classList.remove('active'));
@@ -1161,8 +1211,7 @@ document.addEventListener('click', async (e) => {
   const defaultEase = 2.5;
   const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-  // Scoped selectors
-  const $ = (sel) => root.querySelector(sel);
+
   // try inside #flashcards first, then global document
   const byId = (id) => root.querySelector('#' + id) || document.getElementById(id);
 
@@ -2092,9 +2141,6 @@ document.getElementById('translateBtn')?.addEventListener('click', async () => {
   document.getElementById('translateOutput').textContent = out;
 });
 
-// simple SPA view switcher
-const $$ = (s) => Array.from(document.querySelectorAll(s));
-const $  = (s) => document.querySelector(s);
 
 function showView(name) {
   // deactivate all views
@@ -2128,3 +2174,4 @@ window.addEventListener('DOMContentLoaded', () => {
   const initial = (location.hash || '#home').slice(1);
   showView(initial);
 });
+}

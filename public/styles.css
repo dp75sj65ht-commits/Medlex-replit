@@ -439,6 +439,3 @@ body.no-scroll { overflow: hidden; }
 
 .view { display: none; }
 .view.active { display: block; }
-
-.view { display: none; }
-.view.active { display: block; }
