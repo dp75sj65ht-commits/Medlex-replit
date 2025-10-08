@@ -9,6 +9,119 @@ if (window.__medlexInit) {
   window.$  = window.$  || ((sel, root = document) => root.querySelector(sel));
   window.$$ = window.$$ || ((sel, root = document) => Array.from(root.querySelectorAll(sel)));
 
+  // Bind the Load button
+  if (window.__medlexGlossary) window.__medlexGlossary.wire();
+
+  // Optional: auto-load on first open of the Glossary tab
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('nav button'); if (!b) return;
+    if (b.dataset.tab === 'glossary' && window.__medlexGlossary && !window.__medlexGlossary.state.loaded) {
+      window.__medlexGlossary.load();
+    }
+  });
+
+  // ===== GLOSSARY MODULE (idempotent and self-contained) =====
+  (() => {
+    if (window.__medlexGlossary) return; // avoid duplicate modules
+    window.__medlexGlossary = { state: { loaded:false, terms:[] } };
+
+    const state = window.__medlexGlossary.state;
+
+    // Ensure a host exists (won't crash if missing)
+    function ensureHost() {
+      let host = document.getElementById('glossary-list');
+      if (!host) {
+        const g = document.getElementById('glossary') || document.body;
+        host = document.createElement('div');
+        host.id = 'glossary-list';
+        g.appendChild(host);
+      }
+      return host;
+    }
+
+    // Simple renderer
+    function render(terms) {
+      const host = ensureHost();
+      if (!Array.isArray(terms) || terms.length === 0) {
+        host.innerHTML = `<p style="opacity:.7">No terms to show.</p>`;
+        return;
+      }
+      host.innerHTML = terms.slice(0, 500).map(t => {
+        const term = (t.term || t.word || t.key || '').toString();
+        const def  = (t.definition || t.def || t.explanation || '').toString();
+        const spec = (t.specialty || t.category || '').toString();
+        const lang = (t.lang || t.language || '').toString();
+        return `
+          <article class="glossary-item" style="padding:.6rem 1rem;border-bottom:1px solid #eee">
+            <div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;">
+              <h4 style="margin:0">${term || '(term)'}</h4>
+              <small style="opacity:.6">${[spec, lang].filter(Boolean).join(' · ')}</small>
+            </div>
+            <p style="margin:.4rem 0 0">${def || '<i style="opacity:.7">No definition</i>'}</p>
+          </article>
+        `;
+      }).join('');
+    }
+
+    // NDJSON loader for /api/terms
+    async function load() {
+      const btn = document.querySelector('#btn-load-terms');
+      try {
+        if (btn) { btn.disabled = true; btn.dataset.label ??= btn.textContent; btn.textContent = 'Loading…'; }
+
+        const res = await fetch('/api/terms', { cache: 'no-store' });
+        const text = await res.text();
+
+        const U = text.trim().toUpperCase();
+        if (U.startsWith('<!DOCTYPE') || U.startsWith('<HTML')) {
+          throw new Error('Got HTML instead of NDJSON — check /api/terms route is above SPA catch-all');
+        }
+
+        const terms = [];
+        for (const raw of text.split(/\r?\n/)) {
+          const line = raw.trim();
+          if (!line) continue;
+          try { terms.push(JSON.parse(line)); }
+          catch {
+            const i = line.indexOf('{'), j = line.lastIndexOf('}');
+            if (i >= 0 && j > i) { try { terms.push(JSON.parse(line.slice(i, j + 1))); } catch {} }
+          }
+        }
+
+        console.log('✅ Parsed terms:', terms.length);
+        state.terms = terms;
+        state.loaded = true;
+        render(terms);
+
+      } catch (err) {
+        console.error('loadTerms failed:', err);
+        ensureHost().innerHTML = `<p style="color:#b00">Failed to load terms: ${err.message}</p>`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Load terms'; }
+      }
+    }
+
+    // Bind #btn-load-terms exactly once
+    function wire() {
+      let btn = document.querySelector('#btn-load-terms');
+      if (!btn) return;
+
+      // ✨ Remove ANY previously attached listeners by cloning the node
+      const clean = btn.cloneNode(true);
+      btn.replaceWith(clean);
+      btn = clean;
+
+      // Bind ONLY our handler
+      btn.addEventListener('click', load, { passive: true });
+    }
+
+    // expose for debugging
+    window.__medlexGlossary.render = render;
+    window.__medlexGlossary.load   = load;
+    
+    window.__medlexGlossary.wire   = wire;
+  })();
+
   // ---------- Glossary state ----------
   const glossaryState = {
     loaded: false,
@@ -92,6 +205,7 @@ if (window.__medlexInit) {
     init();
   }
 }
+
 
 /* ---------------- Tabs ---------------- */
 document.addEventListener('click', (e) => {
