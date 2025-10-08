@@ -1,7 +1,18 @@
+// public/app.js (top lines)
+if (window.__medlexBooted) {
+  console.warn("MedLex already booted — ignoring second include");
+  // Important: bail before attaching any listeners
+  throw new Error("BOOT_GUARD"); // prevents second run cleanly
+}
+window.__medlexBooted = true;
+
+console.log("MedLex app.js loaded v15");
+
 // public/app.js v15 — multilingual flashcards + translate mode + auto direction
 console.log("MedLex app.js loaded v15");
 
 const $ = (sel) => document.querySelector(sel);
+
 
 /* ---------------- Tabs ---------------- */
 document.addEventListener('click', (e) => {
@@ -103,22 +114,32 @@ const DefCache = {
   set(term, lang, text) { try { if (text && text.length) localStorage.setItem(this.key(term, lang), text); } catch {} }
 };
 
-/* Build the specialties dropdown from what's in the DB */
+// ---- Replace the old function with this version ----
 async function refreshSpecialties() {
   try {
-    const { data } = await getJSON('/api/terms');
-    const unique = [...new Set(data.map(t => t.specialty || 'general'))].sort((a,b)=>a.localeCompare(b));
-    const fill = (sel) => {
-      if (!sel) return;
-      const cur = sel.value;
-      sel.innerHTML = `<option value="">All specialties</option>` +
-        unique.map(s => `<option value="${s}">${prettySpec(s)}</option>`).join('');
-      if (cur && unique.includes(cur)) sel.value = cur;
-    };
-    fill(document.querySelector('#spec-filter'));
-    fill(document.querySelector('#anatomy-spec'));
-  } catch (e) {
-    console.warn('specialty refresh failed:', e);
+    // 🔧 Change this path if your JSON lives elsewhere
+    const url = "/data/specialties.json";
+    console.log("🔎 Fetching specialties from", url);
+
+    const res = await fetch(url, { cache: "no-store" });
+    const text = await res.text();
+
+    console.log("📦 Response starts with:", text.slice(0, 60));
+
+    // 🚫 Detects HTML instead of JSON
+    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+      throw new Error("Got HTML instead of JSON — wrong path?");
+    }
+
+    // ✅ Parse JSON safely
+    const specialties = JSON.parse(text);
+    console.log("✅ Parsed specialties:", specialties.length);
+
+    // TODO: render your list or populate the DOM here
+    // e.g., populateSpecialtyList(specialties);
+
+  } catch (err) {
+    console.error("specialty refresh failed:", err);
   }
 }
 
@@ -1928,3 +1949,13 @@ function rate(r){
     }
   });
 })();
+
+// --- BOOT GUARD: prevent double attach ---
+if (window.__medlexBooted) {
+  console.warn("MedLex already booted — ignoring second include");
+  throw new Error("BOOT_GUARD");
+}
+window.__medlexBooted = true;
+// -----------------------------------------
+
+console.log("MedLex app.js loaded v15");
