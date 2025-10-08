@@ -1,0 +1,862 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <meta charset="utf-8" />
+  <title>MedLex Go (MVP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- cache-bust so Safari/Chrome pull the latest CSS -->
+  <link rel="stylesheet" href="/styles.css?v=21" />
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+  <header>
+    <a id="home-link" class="brand" href="#" aria-label="MedLex Home">
+      <img
+        src="/assets/brand/medlex-logo.png"
+        alt="MedLex logo"
+        width="28" height="28"
+        decoding="async" loading="eager"
+        style="display:block;border-radius:6px"
+      />
+      <span class="brand-name">MedLex Go</span>
+    </a>
+    <nav class="main-nav">
+      <!-- LEFT: dropdown menus -->
+      <div class="nav-group">
+        <!-- Study tools -->
+        <div class="nav-menu">
+          <button id="menu-study" class="nav-btn" aria-haspopup="true" aria-expanded="false">
+            Study tools ▾
+          </button>
+          <div id="menu-study-pop" class="menu-pop" role="menu" hidden>
+            <button role="menuitem" class="menu-item" data-tab="flashcards">Flashcards</button>
+            <button role="menuitem" class="menu-item" data-tab="enrich">Enrich</button>
+            <button role="menuitem" class="menu-item" data-tab="anatomy">Anatomy</button>
+          </div>
+        </div>
+
+        <!-- Translation tools -->
+        <div class="nav-menu">
+          <button id="menu-translate" class="nav-btn" aria-haspopup="true" aria-expanded="false">
+            Translation tools ▾
+          </button>
+          <div id="menu-translate-pop" class="menu-pop" role="menu" hidden>
+            <button role="menuitem" class="menu-item" data-tab="glossary">Glossary</button>
+            <button role="menuitem" class="menu-item" data-tab="translate">Translate</button>
+          </div>
+        </div>
+
+        <!-- Keep a simple Settings link -->
+        <button class="nav-btn" data-go="settings">Settings</button>
+      </div>
+
+      <!-- RIGHT: plan badge + (optional) buttons -->
+      <div class="nav-right">
+        <span id="plan-badge" class="badge">FREE</span>
+        <button id="upgrade-btn-inline" class="btn primary small" hidden>Go Pro</button>
+        <button id="manage-sub-btn" class="btn small" hidden>Manage</button>
+      </div>
+
+      <!-- Hidden compatibility nav (inside <nav> so app.js delegation sees clicks) -->
+      
+    </nav>   
+  </header>
+
+
+  <div id="app-root">
+    <!-- your app: nav, tabs, etc. -->
+  </div>
+
+  <!-- Welcome / Landing -->
+  <div id="welcome" hidden>
+    <div class="welcome-card" role="dialog" aria-labelledby="welcome-title">
+      <header>
+        <img
+          src="/assets/brand/medlex-logo.png"
+          srcset="/assets/brand/medlex-logo.png 1x, /assets/brand/medlex-logo@2x.png 2x"
+          alt="MedLex logo"
+          class="welcome-logo"
+        />
+        <div>
+          <h1 id="welcome-title">Welcome to MedLex</h1>
+          <p class="welcome-tagline">Learn medical terms in multiple languages — faster.</p>
+        </div>
+      </header>
+
+      <!-- Dynamic Greeting + Quote/Stat -->
+      <section class="welcome-greeting">
+        <h2 class="greet-text">Good afternoon 👋</h2>
+        <p class="mini-quote">“Small, daily reviews beat cramming.”</p>
+      </section>
+
+      <!-- ADD: Visible only for Free; JS toggles `hidden` -->
+      <section id="welcome-upgrade-block" class="upgrade-card" hidden>
+        <h3>Go Pro — unlock everything</h3>
+        <ul>
+          <li>Unlimited terms</li>
+          <li>Translate Mode & Export</li>
+          <li>Priority updates</li>
+        </ul>
+        <button id="welcome-go-pro" class="btn primary" aria-label="Upgrade to Pro">Upgrade to Pro</button>
+      </section>
+
+      <!-- Tool Choosers -->
+      <section class="welcome-choosers">
+
+        <!-- Study tools -->
+        <details class="chooser" id="chooser-study" open>
+          <summary>
+            <span>Study tools</span>
+            <small class="sub">Active learning & practice</small>
+          </summary>
+          <div class="chooser-grid">
+            <button class="chooser-tile" data-tab="flashcards" aria-label="Go to Flashcards">
+              <h4>Flashcards</h4>
+              <p>Spaced repetition with decks & streaks</p>
+            </button>
+            <button class="chooser-tile" data-tab="enrich" aria-label="Go to Enrich">
+              <h4>Enrich</h4>
+              <p>AI-generated definitions you can save</p>
+            </button>
+            <button class="chooser-tile" data-tab="anatomy" aria-label="Go to Anatomy">
+              <h4>Anatomy</h4>
+              <p>Clickable body map with labels</p>
+            </button>
+          </div>
+        </details>
+
+        <!-- Translation tools -->
+        <details class="chooser" id="chooser-translate">
+          <summary>
+            <span>Translation tools</span>
+            <small class="sub">Reference & lookups</small>
+          </summary>
+          <div class="chooser-grid">
+            <button class="chooser-tile" data-tab="glossary" aria-label="Go to Glossary">
+              <h4>Glossary</h4>
+              <p>Search terms across EN / ES / PT</p>
+            </button>
+            <button class="chooser-tile" data-tab="translate" aria-label="Go to Translate">
+              <h4>Translate</h4>
+              <p>Quick multi-language term translator</p>
+            </button>
+          </div>
+        </details>
+
+      </section>
+
+      <!-- Progress Summary -->
+      <section class="welcome-progress">
+        <h3>Your progress</h3>
+        <ul>
+          <li><strong>Today reviewed:</strong> <span id="stat-today">0</span> terms</li>
+          <li><strong>Yesterday:</strong> <span id="stat-yesterday">0</span> terms</li>
+          <li><strong>7-day total:</strong> <span id="stat-week">0</span> terms</li>
+          <li><strong>Streak:</strong> <span id="stat-streak">0</span> day(s)</li>
+        </ul>
+      </section>
+
+      <!-- Primary Actions -->
+      <nav class="welcome-actions" aria-label="Primary actions">
+        <button class="btn primary" data-tab="flashcards">Start Flashcards</button>
+        <button class="btn" data-tab="glossary">Open Glossary</button>
+        <button class="btn" data-tab="settings">Language Settings</button>
+        <button class="btn ghost" id="continue-btn" hidden>Continue: <span id="continue-label">Flashcards</span></button>
+      </nav>
+
+      <!-- Preferences -->
+      <label class="remember-line">
+        <input type="checkbox" id="remember-welcome" />
+        Skip this screen next time
+      </label>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- TRANSLATE (original IDs preserved) -->
+    <section id="translate" class="tab active">
+      <h2>Translate term</h2>
+
+      <div class="row">
+        <label for="from-lang" style="min-width:140px;">From:</label>
+        <select id="from-lang">
+          <option value="EN" selected>English (EN)</option>
+          <option value="ES">Spanish (ES)</option>
+          <option value="PT">Portuguese (PT)</option>
+        </select>
+      </div>
+
+      <div class="row" id="lang-picker">
+        <label class="chip">
+          <input type="checkbox" name="lang" value="ES" checked />
+          <span>Spanish (ES)</span>
+        </label>
+        <label class="chip">
+          <input type="checkbox" name="lang" value="PT" />
+          <span>Portuguese (PT)</span>
+        </label>
+      </div>
+
+      <div class="row">
+        <input id="term-input" placeholder="e.g., appendicitis" />
+        <button id="btn-translate">Translate</button>
+      </div>
+
+      <div id="result"></div>
+    </section>
+
+    <!-- GLOSSARY (original IDs preserved) -->
+    <section id="glossary" class="tab">
+      <h2>Glossary</h2>
+
+      <div class="row">
+        <label for="glossary-lang" style="min-width:140px;">Primary language:</label>
+        <select id="glossary-lang">
+          <option value="EN">English</option>
+          <option value="ES">Spanish</option>
+          <option value="PT">Portuguese</option>
+        </select>
+
+        <input id="search-input" placeholder="Search EN/ES/PT or definitions…" style="margin-left:12px;" />
+        <select id="spec-filter">
+          <option value="">All specialties</option>
+          <option value="general">General</option>
+          <option value="emergency">Emergency</option>
+          <option value="procedures">Procedures</option>
+          <option value="cardiology">Cardiology</option>
+        </select>
+        <button id="btn-search">Search</button>
+        <button id="btn-load-terms">Load</button>
+      </div>
+
+      <div id="terms-list"></div>
+
+      <!-- DISPLAY AREA -->
+      <ul id="termList"></ul>
+    </section>
+
+    <!-- FLASHCARDS -->
+    <section id="flashcards" class="tab">
+      <!-- Flashcards — Quizlet-style inside #flashcards -->
+      <header class="fc-header">
+        <!-- Deck grid launcher + streak badge -->
+        <div class="row">
+          <button id="fc-choose-deck">📚 Choose Deck</button>
+          <span id="fc-streak" class="pill" title="Daily study streak">🔥 0</span>
+          <select id="fc-specialty"></select>
+
+          <!-- Translate Practice Controls -->
+          <div id="fc-translate-controls" class="pill" style="display:flex;align-items:center;gap:.4rem;">
+            <input type="checkbox" id="fc-translate-on" />
+            <span>Translate&nbsp;Mode</span>
+
+            <select id="fc-lang-from" title="From">
+              <option value="EN">EN</option>
+              <option value="ES">ES</option>
+              <option value="PT">PT</option>
+            </select>
+
+            <span style="opacity:.7">→</span>
+
+            <select id="fc-lang-to" title="To">
+              <option value="ES">ES</option>
+              <option value="PT">PT</option>
+              <option value="EN">EN</option>
+            </select>
+
+            <button id="fc-swap" title="Swap direction" style="border:none;background:none;color:var(--accent);cursor:pointer;">↔︎</button>
+          </div>
+
+          <!-- study modes -->
+          <div class="mode-buttons">
+            <button class="fc-modebtn active" data-ui="flashcards">Flashcards</button>
+            <button class="fc-modebtn" data-ui="learn">Learn</button>
+            <button class="fc-modebtn" data-ui="match">Match</button>
+          </div>
+
+          <select id="fc-mode">
+            <option value="due">Study Due</option>
+            <option value="cram">Cram (All)</option>
+          </select>
+          <button id="fc-add">+ Card</button>
+          <button id="fc-manage">Manage Specialties</button>
+          <input id="fc-search" placeholder="Search cards…" />
+        </div>
+
+        <div class="row tiny">
+          <span id="fc-counts">0 due • 0 total</span>
+        </div>
+      </header>
+
+      <main class="fc-main">
+        <!-- Quick deck grid -->
+        <section id="fc-deck-grid" class="hidden" aria-label="Deck chooser"></section>
+
+        <!-- FLASHCARDS UI -->
+        <section id="fc-ui-flashcards" class="fc-ui">
+          <div id="fc-study" class="fc-panel">
+            <div id="fc-card" class="fc-card flip" tabindex="0">
+              <div class="face front" id="fc-front">Click to reveal</div>
+              <div class="face back" id="fc-back"></div>
+            </div>
+
+            <div class="fc-actions hidden" id="fc-actions">
+              <button data-rate="again" class="again">1 • Again</button>
+              <button data-rate="hard"  class="hard">2 • Hard</button>
+              <button data-rate="good"  class="good">3 • Good</button>
+              <button data-rate="easy"  class="easy">4 • Easy</button>
+            </div>
+
+            <!-- progress row like screenshot -->
+            <div class="fc-progress">
+              <button id="fc-prev" title="Previous">←</button>
+              <div class="bar"><div class="fill" id="fc-progress-fill"></div></div>
+              <span id="fc-index">0 / 0</span>
+              <button id="fc-next" title="Next">→</button>
+            </div>
+
+            <div class="fc-empty hidden" id="fc-empty">No cards to study here. Try a different specialty or switch to Cram.</div>
+          </div>
+        </section>
+
+        <!-- LEARN (multiple choice) -->
+        <section id="fc-ui-learn" class="fc-ui hidden">
+          <div class="learn-card card">
+            <div class="q" id="learn-q">Question</div>
+            <div class="opts" id="learn-opts"></div>
+            <div class="learn-status">
+              <span id="learn-progress">0 / 0</span>
+              <span id="learn-score">Score: 0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- MATCH game -->
+        <section id="fc-ui-match" class="fc-ui hidden">
+          <div class="match-hud">
+            <span>Time: <strong id="match-time">0.0s</strong></span>
+            <button id="match-restart">Restart</button>
+          </div>
+          <div class="match-grid" id="match-grid" aria-label="Match the pairs"></div>
+        </section>
+
+        <!-- Add/Edit modal -->
+        <dialog id="fc-editor">
+          <form method="dialog" class="fc-form">
+            <h3 id="fc-editor-title">New Card</h3>
+            <label>Front
+              <textarea id="fc-front-input" required></textarea>
+            </label>
+            <label>Back
+              <textarea id="fc-back-input" required></textarea>
+            </label>
+            <label>Specialty
+              <select id="fc-specialty-input"></select>
+            </label>
+            <menu>
+              <button value="cancel">Cancel</button>
+              <button id="fc-save" value="default">Save</button>
+            </menu>
+          </form>
+        </dialog>
+
+        <!-- Deck manager -->
+        <dialog id="fc-decks">
+          <form method="dialog" class="fc-form">
+            <h3>Manage Specialties</h3>
+            <div id="fc-deck-list"></div>
+            <div class="row">
+              <input id="fc-deck-new" placeholder="New specialty name" />
+              <button id="fc-deck-add" type="button">Add</button>
+            </div>
+            <menu>
+              <button value="cancel">Close</button>
+            </menu>
+          </form>
+        </dialog>
+
+        <!-- Browse list -->
+        <section id="fc-browse">
+          <ul id="fc-list" class="fc-list"></ul>
+        </section>
+      </main>
+    </section>
+
+    <!-- ENRICH -->
+    <section id="enrich" class="tab">
+      <h2>AI Definition Generator</h2>
+
+      <div class="row">
+        <label style="min-width:140px;">Primary language:</label>
+        <select id="enrich-lang">
+          <option value="EN">English</option>
+          <option value="ES">Spanish</option>
+          <option value="PT">Portuguese</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <input id="enrich-term" placeholder="Term (must match a glossary item to save)" />
+        <input id="enrich-term-id" placeholder="Term ID (optional, for saving)" style="max-width:140px;" />
+      </div>
+
+      <div class="row">
+        <button id="btn-enrich">Generate</button>
+        <button id="btn-enrich-save" disabled>Save to Glossary</button>
+      </div>
+
+      <div id="enrich-result" class="card" style="min-height:90px;"></div>
+    </section>
+
+    <!-- ANATOMY (image + overlay; safe script below) -->
+    <section id="anatomy" class="tab">
+      <h2>Anatomy</h2>
+      <p class="muted">External body parts only (Phase 1). Click/tap regions. Preferred language shown first.</p>
+
+      <div class="row" style="gap:12px;align-items:center">
+        <label style="min-width:140px;">Preferred language:</label>
+        <select id="anatomy-lang">
+          <option value="EN" selected>English (EN)</option>
+          <option value="ES">Spanish (ES)</option>
+          <option value="PT">Portuguese (PT)</option>
+        </select>
+      </div>
+
+      <div class="stage">
+        <div class="imgwrap">
+          <!-- Ensure this file exists at public/assets/anatomy-dual.png -->
+          <img id="anatomy-img" src="/assets/anatomy-dual.png?v=21"
+               alt="Front-view diagram of male and female human bodies, side by side" />
+          <div class="overlay" id="anatomy-overlay" aria-label="Body part click zones" role="group">
+            <!-- FEMALE zones -->
+            <button class="hit" data-part="head"      data-sex="female" data-box="--f-head"  aria-label="Female head"></button>
+            <button class="hit" data-part="chest"     data-sex="female" data-box="--f-chest" aria-label="Female chest"></button>
+            <button class="hit" data-part="abdomen"   data-sex="female" data-box="--f-abd"   aria-label="Female abdomen"></button>
+            <button class="hit" data-part="groin"     data-sex="female" data-box="--f-groin" aria-label="Female groin"></button>
+            <button class="hit" data-part="arm_left"  data-sex="female" data-box="--f-armL"  aria-label="Female left arm"></button>
+            <button class="hit" data-part="arm_right" data-sex="female" data-box="--f-armR"  aria-label="Female right arm"></button>
+            <button class="hit" data-part="hand_left" data-sex="female" data-box="--f-handL" aria-label="Female left hand"></button>
+            <button class="hit" data-part="hand_right"data-sex="female" data-box="--f-handR" aria-label="Female right hand"></button>
+            <button class="hit" data-part="leg_left"  data-sex="female" data-box="--f-legL"  aria-label="Female left leg"></button>
+            <button class="hit" data-part="leg_right" data-sex="female" data-box="--f-legR"  aria-label="Female right leg"></button>
+            <button class="hit" data-part="foot_left" data-sex="female" data-box="--f-footL" aria-label="Female left foot"></button>
+            <button class="hit" data-part="foot_right"data-sex="female" data-box="--f-footR" aria-label="Female right foot"></button>
+
+            <!-- MALE zones -->
+            <button class="hit" data-part="head"      data-sex="male" data-box="--m-head"  aria-label="Male head"></button>
+            <button class="hit" data-part="chest"     data-sex="male" data-box="--m-chest" aria-label="Male chest"></button>
+            <button class="hit" data-part="abdomen"   data-sex="male" data-box="--m-abd"   aria-label="Male abdomen"></button>
+            <button class="hit" data-part="groin"     data-sex="male" data-box="--m-groin" aria-label="Male groin"></button>
+            <button class="hit" data-part="arm_left"  data-sex="male" data-box="--m-armL"  aria-label="Male left arm"></button>
+            <button class="hit" data-part="arm_right" data-sex="male" data-box="--m-armR"  aria-label="Male right arm"></button>
+            <button class="hit" data-part="hand_left" data-sex="male" data-box="--m-handL" aria-label="Male left hand"></button>
+            <button class="hit" data-part="hand_right"data-sex="male" data-box="--m-handR" aria-label="Male right hand"></button>
+            <button class="hit" data-part="leg_left"  data-sex="male" data-box="--m-legL"  aria-label="Male left leg"></button>
+            <button class="hit" data-part="leg_right" data-sex="male" data-box="--m-legR"  aria-label="Male right leg"></button>
+            <button class="hit" data-part="foot_left" data-sex="male" data-box="--m-footL" aria-label="Male left foot"></button>
+            <button class="hit" data-part="foot_right"data-sex="male" data-box="--m-footR" aria-label="Male right foot"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud" id="anatomy-hud" aria-live="polite" aria-atomic="true">
+        <strong>Selection:</strong> <span id="anatomy-hudtxt" class="pill">—</span>
+      </div>
+
+      <!-- Safe, defensive Anatomy script -->
+      <script>
+        (function(){
+          const PREF = document.getElementById('anatomy-lang');
+          const HUD  = document.getElementById('anatomy-hudtxt');
+          const overlay = document.getElementById('anatomy-overlay');
+          const img = document.getElementById('anatomy-img');
+
+          // If overlay isn't present, bail out (prevents errors that could affect other tabs)
+          if(!overlay || !img || !HUD || !PREF) return;
+
+          const TERMS = {
+            head:{EN:"Head / Face / Neck",ES:"Cabeza / Cara / Cuello",PT:"Cabeça / Rosto / Pescoço"},
+            chest:{EN:"Chest",ES:"Pecho / Tórax",PT:"Peito / Tórax"},
+            abdomen:{EN:"Abdomen / Belly",ES:"Abdomen / Vientre",PT:"Abdome / Barriga"},
+            groin:{EN:"Groin / Pelvis / Hip",ES:"Ingle / Pelvis / Cadera",PT:"Virilha / Pelve / Quadril"},
+            arm_left:{EN:"Left arm",ES:"Brazo izquierdo",PT:"Braço esquerdo"},
+            arm_right:{EN:"Right arm",ES:"Brazo derecho",PT:"Braço direito"},
+            hand_left:{EN:"Left hand",ES:"Mano izquierda",PT:"Mão esquerda"},
+            hand_right:{EN:"Right hand",ES:"Mano derecha",PT:"Mão direita"},
+            leg_left:{EN:"Left leg",ES:"Pierna izquierda",PT:"Perna esquerda"},
+            leg_right:{EN:"Right leg",ES:"Pierna derecha",PT:"Perna direita"},
+            foot_left:{EN:"Left foot",ES:"Pie izquierdo",PT:"Pé esquerdo"},
+            foot_right:{EN:"Right foot",ES:"Pie derecho",PT:"Pé direito"}
+          };
+
+          function label(part){
+            const pref = PREF.value || 'EN';
+            const t = TERMS[part]; if(!t) return part;
+            const alt = ['EN','ES','PT'].filter(x=>x!==pref).map(x=>t[x]);
+            return `<b>${t[pref]}</b> · ${alt.join(' · ')}`;
+          }
+
+          function setBox(btn){
+            const varName = btn.dataset.box; // e.g. --f-head
+            const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            const parts = v.split('/');
+            if(parts.length !== 2) return;
+            const [pos,size] = parts;
+            const p = pos.trim().split(/\s+/), s = size.trim().split(/\s+/);
+            if(p.length !== 2 || s.length !== 2) return;
+            const [top,left] = p, [w,h] = s;
+            Object.assign(btn.style,{top,left,width:w,height:h});
+          }
+
+          function positionAll(){
+            overlay.querySelectorAll('.hit').forEach(setBox);
+          }
+
+          function pick(btn){
+            const part = btn.dataset.part;
+            const sex  = btn.dataset.sex;
+            HUD.innerHTML = `${sex==='female'?'♀':'♂'} ${label(part)}`;
+            // Backend hook example (leave commented until wired)
+            // const pref = (PREF.value || 'EN').toLowerCase();
+            // const locales = [pref, ...['en','es','pt'].filter(x=>x!==pref)];
+            // fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},
+            //   body:JSON.stringify({sex, area:part, locales})
+            //});
+          }
+
+          function bind(){
+            overlay.querySelectorAll('.hit').forEach(btn=>{
+              btn.addEventListener('click',()=>pick(btn));
+              btn.addEventListener('keydown',e=>{
+                if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(btn); }
+              });
+            });
+          }
+
+          // Wait for full page load so sizing is correct
+          window.addEventListener('load', ()=>{ bind(); positionAll(); });
+          window.addEventListener('resize', positionAll);
+          img.addEventListener('load', positionAll);
+
+          // Helpful image error message (won't break other tabs)
+          img.addEventListener('error', ()=>{
+            HUD.textContent = 'Image not found. Check /public/assets/anatomy-dual.png';
+          });
+        })();
+      </script>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="tab">
+      <h2>Settings</h2>
+      <p>User ID: <code id="user-id"></code></p>
+      <div class="row">
+        <input id="license-code" placeholder="Enter license code" />
+        <button id="btn-redeem">Redeem</button>
+      </div>
+      <p>Plan: <strong id="plan">free</strong></p>
+      <p class="muted">Tip: install this as an app from your browser menu.</p>
+    </section>
+  </main>
+
+  <!-- Keep your real app logic intact -->
+  <script src="/app.js?v=21"></script>
+
+  <script>
+  document.querySelector('nav').addEventListener('click', e => {
+    const t = e.target.closest('[data-tab]');
+    if (t) console.log('nav click → data-tab=', t.getAttribute('data-tab'));
+  });
+  </script>
+
+  <script>
+  (function(){
+    function setupMenu(btnId, popId){
+      const btn = document.getElementById(btnId);
+      const pop = document.getElementById(popId);
+      if (!btn || !pop) return;
+
+      function open(){
+        pop.hidden = false;
+        btn.setAttribute('aria-expanded','true');
+        setTimeout(()=>document.addEventListener('click', onDoc, {once:true}));
+        document.addEventListener('keydown', onEsc, {once:true});
+      }
+      function close(){
+        pop.hidden = true;
+        btn.setAttribute('aria-expanded','false');
+      }
+      function onDoc(e){ if (!pop.contains(e.target) && e.target !== btn) close(); }
+      function onEsc(e){ if (e.key === 'Escape') close(); }
+
+      btn.addEventListener('click',(e)=>{ e.preventDefault(); pop.hidden ? open() : close(); });
+    }
+
+    setupMenu('menu-study','menu-study-pop');
+    setupMenu('menu-translate','menu-translate-pop');
+
+    // optional: show Welcome on first load (hide tabs)
+    const w = document.getElementById('welcome');
+    if (w) {
+      w.hidden = false;
+      document.querySelectorAll('main .tab').forEach(s => s.classList.remove('active'));
+    }
+
+    // brand/home -> welcome (non-invasive)
+    document.getElementById('home-link')?.addEventListener('click',(e)=>{
+      e.preventDefault();
+      document.querySelectorAll('main .tab').forEach(s=>s.classList.remove('active'));
+      w && (w.hidden = false);
+    });
+  })();
+  </script>
+
+  <script>
+  /* ===== Header dropdowns + compat router (inside-nav click) ===== */
+  (function () {
+    const MAP = { flashcards:'flashcards', enrich:'enrich', anatomy:'anatomy',
+                  glossary:'glossary', translate:'translate', settings:'settings' };
+
+    function closeMenus() {
+      ['menu-study','menu-translate'].forEach(id=>{
+        const btn=document.getElementById(id), pop=document.getElementById(id+'-pop');
+        if(btn&&pop&&!pop.hidden){ pop.hidden=true; btn.setAttribute('aria-expanded','false'); }
+      });
+    }
+
+    function forceShow(id){
+      const welcome=document.getElementById('welcome'); if (welcome) welcome.hidden = true;
+      document.querySelectorAll('main .tab').forEach(s=>{
+        s.classList.remove('active'); s.removeAttribute('hidden'); s.style.display='none';
+      });
+      const sec=document.getElementById(id);
+      if (sec){ sec.style.display=''; sec.classList.add('active'); }
+    }
+
+    function go(key){
+      const id = MAP[key] || key;
+      closeMenus();
+
+      // (A) try the original app router via hidden buttons INSIDE <nav>
+      const compatBtn = document.querySelector(`nav#\\:scope #nav-compat [data-tab="${id}"]`)
+                        || document.querySelector(`#nav-compat [data-tab="${id}"]`);
+      if (compatBtn) {
+        compatBtn.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+        return;
+      }
+
+      // (B) fallback: force the section visible
+      forceShow(id);
+    }
+
+    // wire dropdown items + any .nav-btn[data-go]
+    function wire(){
+      document.querySelectorAll('.menu-item[data-go], .nav-btn[data-go]').forEach(el=>{
+        el.addEventListener('click', (e)=>{ e.preventDefault(); go(el.getAttribute('data-go')); });
+      });
+
+      // dropdown open/close
+      setupMenu('menu-study','menu-study-pop');
+      setupMenu('menu-translate','menu-translate-pop');
+
+      // brand/home returns to welcome
+      document.getElementById('home-link')?.addEventListener('click',(e)=>{
+        e.preventDefault(); closeMenus();
+        document.querySelectorAll('main .tab').forEach(s=>{ s.classList.remove('active'); s.style.display='none'; });
+        const w=document.getElementById('welcome'); if (w) w.hidden=false;
+      });
+    }
+
+    function setupMenu(btnId, popId){
+      const btn=document.getElementById(btnId), pop=document.getElementById(popId);
+      if(!btn||!pop) return;
+      const open=()=>{ pop.hidden=false; btn.setAttribute('aria-expanded','true');
+        setTimeout(()=>document.addEventListener('click', onDoc, {once:true}));
+        document.addEventListener('keydown', onEsc, {once:true}); };
+      const close=()=>{ pop.hidden=true; btn.setAttribute('aria-expanded','false'); };
+      const onDoc=(e)=>{ if(!pop.contains(e.target) && e.target!==btn) close(); };
+      const onEsc=(e)=>{ if(e.key==='Escape') close(); };
+      btn.addEventListener('click',(e)=>{ e.preventDefault(); pop.hidden?open():close(); });
+    }
+
+    if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', wire);
+    else wire();
+  })();
+  </script>
+
+  <script>
+  /* Wire Welcome chooser tiles to tabs */
+  (function(){
+    function go(tabId){
+      // hide welcome
+      const welcome = document.getElementById('welcome');
+      if (welcome) welcome.hidden = true;
+      // select tab section
+      const section = document.getElementById(tabId);
+      if (!section) return;
+      // clear active from all tabs
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      // show target
+      section.classList.add('active');
+      // optionally highlight the header button that matches
+      const navBtn = document.querySelector('header nav button[data-tab="'+tabId+'"]');
+      if (navBtn) {
+        document.querySelectorAll('header nav button[data-tab]').forEach(b=>b.classList.remove('active'));
+        navBtn.classList.add('active');
+      }
+      section.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    document.querySelectorAll('#welcome .chooser-tile').forEach(btn=>{
+      btn.addEventListener('click', () => go(btn.getAttribute('data-go')));
+    });
+  })();
+  </script>
+
+  <script>
+  /* ===== Inline Upgrade UX (add-only; non-destructive) ===== */
+  (function(){
+    function getPlan() {
+      try {
+        if (window.SubscriptionManager && typeof window.SubscriptionManager.currentPlan === 'function') {
+          return window.SubscriptionManager.currentPlan();
+        }
+        const raw = localStorage.getItem('medlex_user_profile_v1');
+        const p = raw ? JSON.parse(raw) : null;
+        return (p && p.plan) ? p.plan : 'free';
+      } catch (_) { return 'free'; }
+    }
+
+    // Instead of upgrading, just route user to a place to learn/subscribe.
+    function showPlans() {
+      // Option 1: open Settings tab (already exists)
+      const settingsBtn = document.querySelector('button[data-tab="settings"]');
+      if (settingsBtn) settingsBtn.click();
+
+      // Option 2: if you later add a dedicated #plans section, scroll to it here.
+      // const plans = document.getElementById('plans');
+      // if (plans) plans.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function refresh() {
+      const plan = getPlan();
+      const badge  = document.getElementById('plan-badge');
+      const hdrBtn = document.getElementById('upgrade-btn-inline');
+      const welBlk = document.getElementById('welcome-upgrade-block');
+
+      if (badge) {
+        const planText = (plan || 'free').toUpperCase();
+        badge.textContent = planText;
+        badge.classList.toggle('free', plan === 'free');
+        badge.classList.toggle('pro',  plan === 'pro');
+      }
+
+      const isPro = plan === 'pro';
+      if (hdrBtn) hdrBtn.hidden = isPro;   // header Go Pro only visible on Free
+      if (welBlk) welBlk.hidden = isPro;   // welcome upgrade block only visible on Free
+    }
+
+    function bind() {
+      const hdrBtn = document.getElementById('upgrade-btn-inline');
+      const welBtn = document.getElementById('welcome-go-pro');
+      hdrBtn && hdrBtn.addEventListener('click', showPlans);
+      welBtn && welBtn.addEventListener('click', showPlans);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { bind(); refresh(); });
+    } else { bind(); refresh(); }
+
+    window.MedLexUpgradeRefresh = refresh; // optional hook
+  })();
+  </script>
+
+  <script>
+  /* Home logo returns to Welcome screen */
+  (function(){
+    const link = document.getElementById('home-link');
+    const welcome = document.getElementById('welcome');
+    if (!link || !welcome) return;
+
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      // hide all tabs
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      // show welcome
+      welcome.hidden = false;
+      // optional: scroll to top of welcome
+      welcome.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  })();
+  </script>
+
+  <script>
+  /* ===== Paywall focus fix (non-destructive) ===== */
+  (function(){
+    const modal = document.getElementById('paywall');
+    if (!modal) return;
+
+    let lastOpener = null;
+
+    function safeClose() {
+      // move focus OUT first (prevents "aria-hidden ancestor" warning)
+      if (lastOpener && document.contains(lastOpener)) { lastOpener.focus(); }
+      else if (document.body && document.body.focus) { document.body.focus(); }
+      // then hide
+      modal.setAttribute('aria-hidden','true');
+      modal.hidden = true;
+    }
+
+    // capture-phase listeners override old ones to ensure safeClose runs first
+    const btnClose  = document.getElementById('paywall-close');
+    const btnCancel = document.getElementById('paywall-cancel');
+    const btnUpg    = document.getElementById('paywall-upgrade');
+
+    [btnClose, btnCancel].forEach(btn=>{
+      if (!btn) return;
+      btn.addEventListener('click', function(e){
+        lastOpener = lastOpener || btn;   // remember opener if not set
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        safeClose();
+      }, true); // capture
+    });
+
+    if (btnUpg) {
+      btnUpg.addEventListener('click', function(){ lastOpener = btnUpg; }, true);
+    }
+
+    // if your code exposes Paywall, patch its methods to be safe
+    if (window.Paywall) {
+      if (typeof window.Paywall.open === 'function') {
+        const originalOpen = window.Paywall.open;
+        window.Paywall.open = function(opener){
+          lastOpener = opener || document.activeElement || null;
+          modal.hidden = false;
+          modal.removeAttribute('aria-hidden');
+          // send focus inside next frame
+          requestAnimationFrame(()=>{
+            const f = modal.querySelector('[autofocus],button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+            f && f.focus && f.focus();
+          });
+          return originalOpen.apply(this, arguments);
+        };
+      }
+      if (typeof window.Paywall.close === 'function') {
+        window.Paywall.close = function(){ safeClose(); };
+      }
+    }
+  })();
+  </script>
+
+  <!-- Profile / Plans Modal -->
+
+  <!-- A small “account” button somewhere in your header/nav -->
+
+  <!-- Paywall (shown when a locked feature is clicked) -->
+
+
+</body>
+</html>

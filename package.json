@@ -1,0 +1,16 @@
+{
+  "name": "medlex-replit",
+  "version": "1.0.0",
+  "description": "MedLex Go - medical translation + flashcards MVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "cross-fetch": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^6.1.0"
+  }
+}
