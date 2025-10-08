@@ -1,12 +1,14 @@
 // public/sw.js
-const CACHE = 'medlex-cache-v2';   // <- bump v1 -> v2
-const ASSETS = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.json'];
-
-
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// Network-first for HTML; cache-first for small assets if you want.
+// Keep it minimal to avoid caching stale app.js during dev.
+self.addEventListener('fetch', (event) => {
+  // passthrough by default
 });
