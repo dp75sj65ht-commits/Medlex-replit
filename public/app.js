@@ -1119,7 +1119,7 @@ document.addEventListener('click', async (e) => {
   if (__emptyInit && !__emptyInit.classList.contains('hidden')) {
     __emptyInit.classList.add('hidden');
   }
-  
+
   // Storage + timing
   const dbKey = 'medlex_flashcards';
   const now = () => Date.now();
@@ -1143,7 +1143,7 @@ document.addEventListener('click', async (e) => {
       });
     });
   }
-  
+
   // UI refs
   const deckSel = byId('fc-specialty');
   const modeSel = byId('fc-mode');
@@ -1565,7 +1565,7 @@ function rate(r){
     const b = e.target.closest('button[data-rate]'); if(!b) return; rate(b.dataset.rate);
   });
   document.addEventListener('keydown', e=>{
-    
+
     // Optional: restrict by checking flashcards tab visibility
     if (!current) return;
     if (e.key==='1') rate('again');
@@ -1767,7 +1767,7 @@ function rate(r){
       editor?.showModal();
     }
   });
-  
+
   // Deck manager
   const decksDlg = byId('fc-decks');
   byId('fc-manage')?.addEventListener('click', ()=>{ refreshDeckUI(); decksDlg?.showModal(); });
