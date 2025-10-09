@@ -269,79 +269,6 @@ async function refreshSpecialties() {
   }
 }
 
-// =============== MedLex Router (Welcome + Tabs) ===============
-(function NavRouter(){
-  const ID = {
-    flashcards: 'flashcards',
-    enrich:     'enrich',
-    anatomy:    'anatomy',
-    glossary:   'glossary',
-    translate:  'translate',
-    settings:   'settings'
-  };
-
-  function hideAllTabs() {
-    document.querySelectorAll('main .tab').forEach(sec => {
-      sec.classList.remove('active');
-      sec.setAttribute('hidden', '');
-      sec.style.display = 'none';
-    });
-  }
-
-  function showWelcome() {
-    hideAllTabs();
-    const w = document.getElementById('welcome');
-    if (w) w.hidden = false;
-  }
-
-  function showTab(key) {
-    const id = ID[key] || key;
-    const w = document.getElementById('welcome');
-    if (w) w.hidden = true;
-
-    hideAllTabs();
-
-    const sec = document.getElementById(id);
-    if (!sec) { console.warn('[router] missing section #' + id); return; }
-    sec.removeAttribute('hidden');
-    sec.style.display = '';           // let CSS decide layout
-    sec.classList.add('active');
-
-    // remember last tab (optional)
-    try { localStorage.setItem('medlex_last_tab', id); } catch {}
-  }
-
-  // expose for debugging if needed
-  window.MedLexRouter = { showWelcome, showTab };
-
-  // Delegate clicks from ANY element with data-tab or data-go (dropdowns, tiles, header)
-  document.addEventListener('click', (e) => {
-    const el = e.target.closest('[data-tab], [data-go], #home-link');
-    if (!el) return;
-
-    // Brand/logo → Welcome
-    if (el.id === 'home-link') {
-      e.preventDefault();
-      showWelcome();
-      return;
-    }
-
-    const key = el.getAttribute('data-tab') || el.getAttribute('data-go');
-    if (!key) return;
-
-    e.preventDefault();
-    e.stopPropagation();               // avoid legacy handlers double-running
-    showTab(key);
-  }, true); // capture: run before older handlers
-
-  // Force Welcome after the whole app initialized (beats legacy "open flashcards" on load)
-  window.addEventListener('load', () => {
-    // If you *never* want Welcome, comment the next line and set a default below:
-    showWelcome();
-    // If you want to restore last tab instead:
-    // const last = localStorage.getItem('medlex_last_tab'); last ? showTab(last) : showWelcome();
-  });
-})();
 
 // =================== Nav Router (Welcome + Tabs) ===================
 (function NavRouter(){
@@ -909,45 +836,6 @@ function applyClientFilters(rows) {
   return rows.filter(t => matchesSpecialty(t, spec) && matchesSearch(t, q));
 }
 
-  
-
-/* Fetch-all + filter on client */
-async function loadTerms() {
-  try {
-    const res = await fetch("/api/terms", { cache: "no-store" });
-    const text = await res.text();
-
-    const T = text.trim().toUpperCase();
-    if (T.startsWith("<!DOCTYPE") || T.startsWith("<HTML")) {
-      throw new Error("Got HTML instead of NDJSON — check /api/terms route");
-    }
-
-    const terms = [];
-    for (const raw of text.split(/\r?\n/)) {
-      const line = raw.trim();
-      if (!line) continue;
-      try {
-        terms.push(JSON.parse(line));
-      } catch {
-        // try to salvage a JSON object if there is junk around it
-        const i = line.indexOf("{"), j = line.lastIndexOf("}");
-        if (i >= 0 && j > i) {
-          try { terms.push(JSON.parse(line.slice(i, j + 1))); } catch {}
-        }
-      }
-    }
-
-    console.log("✅ Parsed terms:", terms.length);
-    glossaryState.allTerms = terms;
-    glossaryState.loaded = true;
-    renderGlossary(terms);
-
-  } catch (err) {
-    console.error("loadTerms failed:", err);
-    const host = $('#glossary-list');
-    if (host) host.innerHTML = `<p style="color:#b00">Failed to load terms: ${err.message}</p>`;
-  }
-}
 
 /* Server search + client filter */
 async function searchGlossary() {
@@ -2133,17 +2021,13 @@ if (window.__medlexBooted && !window.__medlexInited) {
   }
 }
 
-/* ===== EMERGENCY GLOSSARY OVERRIDE (append at end of app.js) ===== */
-(function () {
-  // Hard guard so we don't re-append on hot reloads
-  if (window.__medlexGlossaryOverride) return;
-  window.__medlexGlossaryOverride = true;
+/* === GLOSSARY FINAL TAIL (single, balanced block) === */
+(() => {
+  // tiny helpers (scoped to this IIFE)
+  const $  = (sel, root = document) => (root || document).querySelector(sel);
+  const $$ = (sel, root = document) => Array.from((root || document).querySelectorAll(sel));
 
-  // Ensure helpers exist
-  const $  = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-
-  // Create/ensure host
+  // ensure host exists
   function ensureHost() {
     let host = document.getElementById('glossary-list');
     if (!host) {
@@ -2152,26 +2036,17 @@ if (window.__medlexBooted && !window.__medlexInited) {
       host.id = 'glossary-list';
       g.appendChild(host);
     }
-    // ensure visible if tabs use .active
-    const pane = document.getElementById('glossary');
-    if (pane && !pane.classList.contains('active')) {
-      // if you require manual click to show the pane, comment this out
-      pane.classList.add('active');
-      // also deactivate other tabs if your CSS requires it
-      $$('.tab.active').forEach(x => { if (x !== pane) x.classList.remove('active'); });
-    }
     return host;
   }
 
-  // Robust NDJSON parser
+  // parse NDJSON robustly
   function parseNDJSON(text) {
     const out = [];
     for (const raw of text.split(/\r?\n/)) {
       const line = raw.trim();
       if (!line) continue;
-      try {
-        out.push(JSON.parse(line));
-      } catch {
+      try { out.push(JSON.parse(line)); }
+      catch {
         const i = line.indexOf('{'), j = line.lastIndexOf('}');
         if (i >= 0 && j > i) { try { out.push(JSON.parse(line.slice(i, j + 1))); } catch {} }
       }
@@ -2179,35 +2054,96 @@ if (window.__medlexBooted && !window.__medlexInited) {
     return out;
   }
 
-  // Minimal renderer (tolerant of varied field names)
+  // return the first defined value from candidate keys
+  function first(obj, keys) {
+    for (const k of keys) {
+      if (obj && obj[k] != null && obj[k] !== '') return obj[k];
+    }
+    return null;
+  }
+
+  // robust language-aware field picker: supports many shapes
+  function pickLangField(obj, lang, bases) {
+    // Accept both 2-letter 'en' and upper 'EN'
+    const L = (lang || '').toLowerCase();
+    const U = L.toUpperCase();
+    const C = L.charAt(0).toUpperCase() + L.slice(1);
+
+    // e.g., for 'definition': definition_es, es_definition, def_es, es_def,
+    // nested: definition.es or definition:{es:""}, and camel: definitionEs / definitionES
+    const variants = [];
+    for (const base of bases) {
+      variants.push(
+        `${base}_${L}`, `${L}_${base}`,
+        `${base}_${U}`, `${U}_${base}`,
+        `${base}${C}`, `${base}${U}`,
+      );
+      // short aliases for "definition" -> "def", "term" -> "name"/"entry"
+      if (base === 'definition' || base === 'def') {
+        variants.push(`def_${L}`, `${L}_def`, `def_${U}`, `${U}_def`);
+      }
+      if (base === 'term') {
+        variants.push(`name_${L}`, `${L}_name`, `entry_${L}`, `${L}_entry`);
+      }
+    }
+
+    // nested maps
+    for (const base of bases) {
+      if (obj && typeof obj[base] === 'object' && obj[base]) {
+        if (obj[base][L] != null) return obj[base][L];
+        if (obj[base][U] != null) return obj[base][U];
+      }
+    }
+
+    return first(obj, variants);
+  }
+  
+  // card renderer (dark style)
   function renderTerms(terms) {
     const host = ensureHost();
     if (!Array.isArray(terms) || terms.length === 0) {
       host.innerHTML = `<p style="opacity:.7">No terms to show.</p>`;
       return;
     }
+    const pills = (t, lang) => {
+      const others = ['en','es','pt'].filter(l => l !== lang);
+      const pick = (obj, L, base) => {
+        if (!obj) return null;
+        return obj[`${base}_${L}`] ?? obj[`${L}_${base}`] ??
+               (obj[base] && typeof obj[base] === 'object' ? obj[base][L] : undefined) ??
+               obj[L] ?? null;
+      };
+      return others.map(L => {
+        const alt = pick(t, L, 'term') ?? pick(t, L, 'definition');
+        return alt ? `<span class="g-lang">${L.toUpperCase()} ${String(alt).trim()}</span>` : '';
+      }).join('');
+    };
+    const currentLang = (() => {
+      const el = $('#primary-language, #glossary-language, #lang-primary');
+      const v = (el && el.value || '').toLowerCase();
+      return (v === 'en' || v === 'es' || v === 'pt') ? v : 'en';
+    })();
 
-    const lang = currentLang();                // 'en' | 'es' | 'pt'
-    const altLangs = ['en','es','pt'].filter(l => l !== lang);
-
-    host.innerHTML = terms.slice(0, 500).map((t) => {
+    host.innerHTML = terms.slice(0, 500).map(t => {
       const specialty = (t.specialty || t.category || t.section || '').toString();
       const reviewed  = (t.reviewed === true) || (t.status === 'reviewed');
 
-      // primary term/def in selected language, with flexible fallbacks
-      const termPrimary =
-        pickField(t, lang, ['term']) ||
-        t.term || t.word || t.key || t.title || t.phrase || '';
+      const pick = (obj, lang, base) => {
+        if (!obj) return null;
+        return obj[`${base}_${lang}`] ?? obj[`${lang}_${base}`] ??
+               (obj[base] && typeof obj[base] === 'object' ? obj[base][lang] : undefined) ??
+               obj[`${base}${lang.toUpperCase()}`] ??
+               obj[`${base}${lang[0].toUpperCase()+lang.slice(1)}`] ??
+               obj[lang] ?? null;
+      };
 
-      const defPrimary =
-        pickField(t, lang, ['definition']) ||
-        t.definition || t.def || t.explanation || t.meaning || t.desc || '';
+      const termMain =
+        pickLangField(t, currentLang, ['term', 'name', 'entry']) ??
+        first(t, ['term','name','entry','word','key','title','phrase']) ?? '';
 
-      // alt language pills like "EN analgesia", "PT analgesia"
-      const langPills = altLangs.map(L => {
-        const alt = pickField(t, L, ['term']) || pickField(t, L, ['definition']) || '';
-        return alt ? `<span class="g-lang">${L.toUpperCase()} ${String(alt).trim()}</span>` : '';
-      }).join('');
+      const defMain =
+        pickLangField(t, currentLang, ['definition','def','explanation','meaning','desc']) ??
+        first(t, ['definition','def','explanation','meaning','desc']) ?? '';
 
       return `
         <article class="g-card">
@@ -2215,54 +2151,19 @@ if (window.__medlexBooted && !window.__medlexInited) {
             ${specialty ? `<span>${specialty}</span>` : ``}
             ${reviewed ? `<span class="g-pill">reviewed</span>` : ``}
           </div>
-          <h4 class="g-title">${String(termPrimary || '').trim() || '(term)'}</h4>
-          <div class="g-langbar">${langPills}</div>
-          <p class="g-def">${String(defPrimary || '').trim() || '<i style="opacity:.7">No definition</i>'}</p>
+          <h4 class="g-title">${String(termMain || '').trim() || '(term)'}</h4>
+          <div class="g-langbar">${pills(t, currentLang)}</div>
+          <p class="g-def">${String(defMain || '').trim() || '<i style="opacity:.7">No definition</i>'}</p>
         </article>
       `;
     }).join('');
   }
 
-  // re-render on primary-language change using cached terms (if present)
-  const langSel = document.querySelector('#primary-language, #glossary-language, #lang-primary');
-  if (langSel) {
-    langSel.addEventListener('change', () => {
-      // keep what’s currently displayed by re-parsing last loaded list
-      const host = document.getElementById('glossary-list');
-      // If you saved terms somewhere, reuse them; else call loader again:
-      loadTermsNew();
-    }, { passive: true });
-  }
-  
-    host.innerHTML = terms.slice(0, 500).map(t => {
-      const term = t.term ?? t.word ?? t.key ?? t.title ?? t.phrase ?? '';
-      const def  = t.definition ?? t.def ?? t.explanation ?? t.meaning ?? t.desc ?? '';
-      const spec = t.specialty ?? t.category ?? t.section ?? '';
-      const lang = t.lang ?? t.language ?? '';
-      const readable = (String(term).trim() || String(def).trim());
-      const body = readable
-        ? `<p style="margin:.4rem 0 0">${String(def||'').trim() || '<i style="opacity:.7">No definition</i>'}</p>`
-        : `<pre style="white-space:pre-wrap;margin:.4rem 0 0;opacity:.8">${JSON.stringify(t, null, 2)}</pre>`;
-      return `
-        <article class="term-card">
-          <h4>${String(term || '').trim() || '(term)'}</h4>
-          <div class="term-meta">
-            ${spec ? `<span class="pill">${spec}</span>` : ``}
-            ${lang ? `<span class="pill">${lang}</span>` : ``}
-          </div>
-          <div class="term-def">
-            ${String(def || '').trim() || '<i style="opacity:.7">No definition</i>'}
-          </div>
-        </article>
-      `;
-    }).join('');
-  }
-
-  async function loadTermsNew() {
+  // single source of truth loader
+  async function loadTermsFinal() {
     let btn = document.querySelector('#btn-load-terms');
     try {
       if (btn) {
-        // wipe any old listeners bound to this node
         const clean = btn.cloneNode(true);
         btn.replaceWith(clean);
         btn = clean;
@@ -2270,73 +2171,46 @@ if (window.__medlexBooted && !window.__medlexInited) {
         btn.dataset.label ??= btn.textContent;
         btn.textContent = 'Loading…';
       }
-
       const res  = await fetch('/api/terms', { cache: 'no-store' });
       const text = await res.text();
 
       const U = text.trim().toUpperCase();
       if (U.startsWith('<!DOCTYPE') || U.startsWith('<HTML')) {
-        throw new Error('Got HTML instead of NDJSON — /api/terms is being swallowed by the SPA catch-all');
+        throw new Error('Got HTML instead of NDJSON — move /api/terms above SPA catch-all');
       }
 
       const terms = parseNDJSON(text);
-      console.log('✅ Parsed terms (override):', terms.length);
-      
-      // pick primary language from your dropdowns (fallback to 'en')
-      function currentLang() {
-        const el = document.querySelector('#primary-language, #glossary-language, #lang-primary');
-        const val = (el && el.value || '').toLowerCase();
-        return ['en','es','pt'].includes(val) ? val : 'en';
-      }
-
-      // try several key shapes for term/definition per language
-      function pickField(obj, lang, baseKeys) {
-        // e.g. baseKeys = ['term'] tries: term_{lang}, {lang}_term, {lang}, term.{lang}, termLang
-        const variants = [
-          `${baseKeys[0]}_${lang}`, `${lang}_${baseKeys[0]}`, lang,
-          `${baseKeys[0]}${lang.toUpperCase()}`, `${baseKeys[0]}${lang[0].toUpperCase()+lang.slice(1)}`,
-        ];
-        for (const k of variants) if (obj && obj[k]) return obj[k];
-        // nested map: { term: { en: ..., es: ... } } or { definition:{...} }
-        if (obj && obj[baseKeys[0]] && typeof obj[baseKeys[0]] === 'object' && obj[baseKeys[0]][lang]) {
-          return obj[baseKeys[0]][lang];
-        }
-        return null;
-      }
+      console.log('✅ Parsed terms (final):', terms.length);
       renderTerms(terms);
-
     } catch (err) {
-      console.error('Glossary override load failed:', err);
+      console.error('Glossary final loader failed:', err);
       ensureHost().innerHTML = `<p style="color:#b00">Failed to load terms: ${err.message}</p>`;
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Load terms'; }
     }
   }
 
-  // Hijack any inline onclick="loadTerms()"
-  window.loadTerms = loadTermsNew;
-
-  // Replace the button node to nuke old listeners, then bind exactly one
-  (function wireButton() {
-    let btn = document.querySelector('#btn-load-terms');
-    if (!btn) return;
+  // remove inline onclick and hard-bind our loader
+  const btn = document.querySelector('#btn-load-terms');
+  if (btn) btn.removeAttribute('onclick');
+  if (btn) {
     const clean = btn.cloneNode(true);
     btn.replaceWith(clean);
-    btn = clean;
-    btn.addEventListener('click', loadTermsNew, { passive: true });
-  })();
+    clean.addEventListener('click', (e) => { e.preventDefault(); loadTermsFinal(); }, { passive: true });
+  }
 
-  // Optional: auto-load when the Glossary pane becomes active for the first time
-  document.addEventListener('click', (e) => {
-    const b = e.target.closest('nav button'); if (!b) return;
-    if (b.dataset.tab === 'glossary') {
-      const host = document.getElementById('glossary-list');
-      if (!host || !host.dataset.loaded) {
-        loadTermsNew().then(() => {
-          const h = document.getElementById('glossary-list');
-          if (h) h.dataset.loaded = '1';
-        });
-      }
-    }
-  }, { passive: true });
-})();
+  // freeze the global name so any old code calls the right loader
+  try {
+    Object.defineProperty(window, 'loadTerms', {
+      configurable: false, enumerable: false, writable: false,
+      value: () => loadTermsFinal()
+    });
+  } catch {
+    window.loadTerms = () => loadTermsFinal();
+  }
+
+  // re-load when language changes
+  const langSel = document.querySelector('#primary-language, #glossary-language, #lang-primary');
+  if (langSel) langSel.addEventListener('change', () => loadTermsFinal(), { passive: true });
+})();  // <— exactly one closing );
+/* === END GLOSSARY FINAL TAIL === */

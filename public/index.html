@@ -10,63 +10,129 @@
   <link rel="manifest" href="/manifest.json">
 
   <style>
-    /* —— Glossary card layout —— */
-    #glossary-list {
-      display: grid;
-      grid-template-columns: minmax(320px, 1fr);
-      gap: .9rem;
-      margin-top: .75rem;
-    }
-    .g-card {
-      background: #101317;
-      border: 1px solid #263042;
-      border-radius: 12px;
-      padding: 1rem 1.2rem;
-    }
-    .g-head {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      margin-bottom: .35rem;
-      color: #9fb0c7;
-      font-size: .82rem;
-      text-transform: lowercase;
-      letter-spacing: .02em;
-    }
-    .g-pill {
-      display: inline-block;
-      border: 1px solid #2e3c52;
-      border-radius: 999px;
-      padding: .12rem .5rem;
-      font-size: .74rem;
-      color: #9fb0c7;
-      background: #0e1217;
-    }
-    .g-title {
-      margin: 0 0 .35rem 0;
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #eef3fb;
-    }
-    .g-langbar {
-      display: flex;
-      gap: .4rem;
-      flex-wrap: wrap;
-      margin-bottom: .45rem;
-    }
-    .g-lang {
-      font-size: .75rem;
-      color: #c9d7ec;
-      background: #0e141c;
-      border: 1px solid #2a3a50;
-      border-radius: 8px;
-      padding: .16rem .5rem;
-    }
-    .g-def {
-      margin: 0;
-      color: #c7d4e8;
-      line-height: 1.45;
-    }
+  /* ---------- Glossary Layout ---------- */
+  #glossary {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 80px);  /* fills viewport minus top nav */
+    overflow: hidden;            /* prevents the header from scrolling away */
+  }
+
+  /* header stays visible */
+  .glossary-header {
+    flex: 0 0 auto;
+    background: #0c1016;
+    border-bottom: 1px solid #1e2733;
+    padding: 1rem 1.5rem .5rem;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  /* toolbar row */
+  .glossary-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem;
+    margin-top: .5rem;
+  }
+
+  .glossary-toolbar select,
+  .glossary-toolbar input {
+    background: #11161d;
+    border: 1px solid #2a3b52;
+    border-radius: 6px;
+    color: #e4edf9;
+    padding: .4rem .6rem;
+    font-size: .85rem;
+  }
+  .glossary-toolbar button {
+    background: #182130;
+    border: 1px solid #2a3b52;
+    border-radius: 6px;
+    color: #c9d7ec;
+    padding: .4rem .8rem;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+
+  /* scrolling area below the bar */
+  .glossary-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+  }
+
+  /* ---------- Card Style ---------- */
+  #glossary-list {
+    max-width: 880px;
+    margin: 0 auto;
+  }
+
+  .g-card {
+    background: #101317;
+    border: 1px solid #263042;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .g-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .35rem;
+    color: #9fb0c7;
+    font-size: .82rem;
+    text-transform: lowercase;
+    letter-spacing: .02em;
+  }
+  .g-pill {
+    display: inline-block;
+    border: 1px solid #2e3c52;
+    border-radius: 999px;
+    padding: .12rem .5rem;
+    font-size: .74rem;
+    color: #9fb0c7;
+    background: #0e1217;
+  }
+  .g-title {
+    margin: 0 0 .35rem 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #eef3fb;
+  }
+  .g-langbar {
+    display: flex;
+    gap: .4rem;
+    flex-wrap: wrap;
+    margin-bottom: .45rem;
+  }
+  .g-lang {
+    font-size: .75rem;
+    color: #c9d7ec;
+    background: #0e141c;
+    border: 1px solid #2a3a50;
+    border-radius: 8px;
+    padding: .16rem .5rem;
+  }
+  .g-def {
+    margin: 0;
+    color: #c7d4e8;
+    line-height: 1.45;
+  }
+  </style>
+  <style>
+    #glossary-list { display:grid; grid-template-columns:minmax(320px,1fr); gap:.9rem; margin-top:.75rem; }
+    .g-card{ background:#101317; border:1px solid #263042; border-radius:12px; padding:1rem 1.2rem; }
+    .g-head{ display:flex; align-items:center; gap:.5rem; margin-bottom:.35rem; color:#9fb0c7; font-size:.82rem; text-transform:lowercase; letter-spacing:.02em; }
+    .g-pill{ display:inline-block; border:1px solid #2e3c52; border-radius:999px; padding:.12rem .5rem; font-size:.74rem; color:#9fb0c7; background:#0e1217; }
+    .g-title{ margin:0 0 .35rem 0; font-size:1.05rem; font-weight:700; color:#eef3fb; }
+    .g-langbar{ display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.45rem; }
+    .g-lang{ font-size:.75rem; color:#c9d7ec; background:#0e141c; border:1px solid #2a3a50; border-radius:8px; padding:.16rem .5rem; }
+    .g-def{ margin:0; color:#c7d4e8; line-height:1.45; }
   </style>
 </head>
 <body>
@@ -288,6 +354,7 @@
         <div id="glossary-list"
       </div>
 
+      
 
       <div id="terms-list"></div>
 
