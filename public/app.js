@@ -2132,3 +2132,211 @@ if (window.__medlexBooted && !window.__medlexInited) {
     init();
   }
 }
+
+/* ===== EMERGENCY GLOSSARY OVERRIDE (append at end of app.js) ===== */
+(function () {
+  // Hard guard so we don't re-append on hot reloads
+  if (window.__medlexGlossaryOverride) return;
+  window.__medlexGlossaryOverride = true;
+
+  // Ensure helpers exist
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  // Create/ensure host
+  function ensureHost() {
+    let host = document.getElementById('glossary-list');
+    if (!host) {
+      const g = document.getElementById('glossary') || document.body;
+      host = document.createElement('div');
+      host.id = 'glossary-list';
+      g.appendChild(host);
+    }
+    // ensure visible if tabs use .active
+    const pane = document.getElementById('glossary');
+    if (pane && !pane.classList.contains('active')) {
+      // if you require manual click to show the pane, comment this out
+      pane.classList.add('active');
+      // also deactivate other tabs if your CSS requires it
+      $$('.tab.active').forEach(x => { if (x !== pane) x.classList.remove('active'); });
+    }
+    return host;
+  }
+
+  // Robust NDJSON parser
+  function parseNDJSON(text) {
+    const out = [];
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line) continue;
+      try {
+        out.push(JSON.parse(line));
+      } catch {
+        const i = line.indexOf('{'), j = line.lastIndexOf('}');
+        if (i >= 0 && j > i) { try { out.push(JSON.parse(line.slice(i, j + 1))); } catch {} }
+      }
+    }
+    return out;
+  }
+
+  // Minimal renderer (tolerant of varied field names)
+  function renderTerms(terms) {
+    const host = ensureHost();
+    if (!Array.isArray(terms) || terms.length === 0) {
+      host.innerHTML = `<p style="opacity:.7">No terms to show.</p>`;
+      return;
+    }
+
+    const lang = currentLang();                // 'en' | 'es' | 'pt'
+    const altLangs = ['en','es','pt'].filter(l => l !== lang);
+
+    host.innerHTML = terms.slice(0, 500).map((t) => {
+      const specialty = (t.specialty || t.category || t.section || '').toString();
+      const reviewed  = (t.reviewed === true) || (t.status === 'reviewed');
+
+      // primary term/def in selected language, with flexible fallbacks
+      const termPrimary =
+        pickField(t, lang, ['term']) ||
+        t.term || t.word || t.key || t.title || t.phrase || '';
+
+      const defPrimary =
+        pickField(t, lang, ['definition']) ||
+        t.definition || t.def || t.explanation || t.meaning || t.desc || '';
+
+      // alt language pills like "EN analgesia", "PT analgesia"
+      const langPills = altLangs.map(L => {
+        const alt = pickField(t, L, ['term']) || pickField(t, L, ['definition']) || '';
+        return alt ? `<span class="g-lang">${L.toUpperCase()} ${String(alt).trim()}</span>` : '';
+      }).join('');
+
+      return `
+        <article class="g-card">
+          <div class="g-head">
+            ${specialty ? `<span>${specialty}</span>` : ``}
+            ${reviewed ? `<span class="g-pill">reviewed</span>` : ``}
+          </div>
+          <h4 class="g-title">${String(termPrimary || '').trim() || '(term)'}</h4>
+          <div class="g-langbar">${langPills}</div>
+          <p class="g-def">${String(defPrimary || '').trim() || '<i style="opacity:.7">No definition</i>'}</p>
+        </article>
+      `;
+    }).join('');
+  }
+
+  // re-render on primary-language change using cached terms (if present)
+  const langSel = document.querySelector('#primary-language, #glossary-language, #lang-primary');
+  if (langSel) {
+    langSel.addEventListener('change', () => {
+      // keep what’s currently displayed by re-parsing last loaded list
+      const host = document.getElementById('glossary-list');
+      // If you saved terms somewhere, reuse them; else call loader again:
+      loadTermsNew();
+    }, { passive: true });
+  }
+  
+    host.innerHTML = terms.slice(0, 500).map(t => {
+      const term = t.term ?? t.word ?? t.key ?? t.title ?? t.phrase ?? '';
+      const def  = t.definition ?? t.def ?? t.explanation ?? t.meaning ?? t.desc ?? '';
+      const spec = t.specialty ?? t.category ?? t.section ?? '';
+      const lang = t.lang ?? t.language ?? '';
+      const readable = (String(term).trim() || String(def).trim());
+      const body = readable
+        ? `<p style="margin:.4rem 0 0">${String(def||'').trim() || '<i style="opacity:.7">No definition</i>'}</p>`
+        : `<pre style="white-space:pre-wrap;margin:.4rem 0 0;opacity:.8">${JSON.stringify(t, null, 2)}</pre>`;
+      return `
+        <article class="term-card">
+          <h4>${String(term || '').trim() || '(term)'}</h4>
+          <div class="term-meta">
+            ${spec ? `<span class="pill">${spec}</span>` : ``}
+            ${lang ? `<span class="pill">${lang}</span>` : ``}
+          </div>
+          <div class="term-def">
+            ${String(def || '').trim() || '<i style="opacity:.7">No definition</i>'}
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async function loadTermsNew() {
+    let btn = document.querySelector('#btn-load-terms');
+    try {
+      if (btn) {
+        // wipe any old listeners bound to this node
+        const clean = btn.cloneNode(true);
+        btn.replaceWith(clean);
+        btn = clean;
+        btn.disabled = true;
+        btn.dataset.label ??= btn.textContent;
+        btn.textContent = 'Loading…';
+      }
+
+      const res  = await fetch('/api/terms', { cache: 'no-store' });
+      const text = await res.text();
+
+      const U = text.trim().toUpperCase();
+      if (U.startsWith('<!DOCTYPE') || U.startsWith('<HTML')) {
+        throw new Error('Got HTML instead of NDJSON — /api/terms is being swallowed by the SPA catch-all');
+      }
+
+      const terms = parseNDJSON(text);
+      console.log('✅ Parsed terms (override):', terms.length);
+      
+      // pick primary language from your dropdowns (fallback to 'en')
+      function currentLang() {
+        const el = document.querySelector('#primary-language, #glossary-language, #lang-primary');
+        const val = (el && el.value || '').toLowerCase();
+        return ['en','es','pt'].includes(val) ? val : 'en';
+      }
+
+      // try several key shapes for term/definition per language
+      function pickField(obj, lang, baseKeys) {
+        // e.g. baseKeys = ['term'] tries: term_{lang}, {lang}_term, {lang}, term.{lang}, termLang
+        const variants = [
+          `${baseKeys[0]}_${lang}`, `${lang}_${baseKeys[0]}`, lang,
+          `${baseKeys[0]}${lang.toUpperCase()}`, `${baseKeys[0]}${lang[0].toUpperCase()+lang.slice(1)}`,
+        ];
+        for (const k of variants) if (obj && obj[k]) return obj[k];
+        // nested map: { term: { en: ..., es: ... } } or { definition:{...} }
+        if (obj && obj[baseKeys[0]] && typeof obj[baseKeys[0]] === 'object' && obj[baseKeys[0]][lang]) {
+          return obj[baseKeys[0]][lang];
+        }
+        return null;
+      }
+      renderTerms(terms);
+
+    } catch (err) {
+      console.error('Glossary override load failed:', err);
+      ensureHost().innerHTML = `<p style="color:#b00">Failed to load terms: ${err.message}</p>`;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Load terms'; }
+    }
+  }
+
+  // Hijack any inline onclick="loadTerms()"
+  window.loadTerms = loadTermsNew;
+
+  // Replace the button node to nuke old listeners, then bind exactly one
+  (function wireButton() {
+    let btn = document.querySelector('#btn-load-terms');
+    if (!btn) return;
+    const clean = btn.cloneNode(true);
+    btn.replaceWith(clean);
+    btn = clean;
+    btn.addEventListener('click', loadTermsNew, { passive: true });
+  })();
+
+  // Optional: auto-load when the Glossary pane becomes active for the first time
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('nav button'); if (!b) return;
+    if (b.dataset.tab === 'glossary') {
+      const host = document.getElementById('glossary-list');
+      if (!host || !host.dataset.loaded) {
+        loadTermsNew().then(() => {
+          const h = document.getElementById('glossary-list');
+          if (h) h.dataset.loaded = '1';
+        });
+      }
+    }
+  }, { passive: true });
+})();
